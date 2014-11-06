@@ -96,14 +96,17 @@ function format_time($seconds, $seconds2 = null, $precise = false) {
 	return $time . " " . $postfix . format_s($time) . ($time2 != 0 ? (", " . $time2 . " " . $postfix2 . format_s($time2)) : "");
 }
 
-function is_address_valid($addr, $version = 73) {
+//---------Begin Kinda working OMC functions-------------
+//Some might not work. I should really check them all out.
+
+function is_address_valid($addr) {
     $addr = decodeBase58($addr);
     if (strlen($addr) != 50) {
 		return false;
     }
     $version = substr($addr, 0, 2);
-    if (hexdec($version) > hexdec($version)) {
-      return false;
+    if (hexdec($version) != 115) {
+		return false;
     }
     $check = substr($addr, 0, strlen($addr) - 8);
     $check = pack("H*", $check);
@@ -205,6 +208,8 @@ function decodeHex($hex) {
 	}
 	return $return;
 }
+
+//---------End Kinda working OMC functions-------------
 
 function format_satoshi($satoshi) {
 	//$to_return = rtrim(rtrim(bcdiv(intval($satoshi), 100000000, 8), "0"), ".");
