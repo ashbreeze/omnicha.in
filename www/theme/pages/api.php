@@ -539,7 +539,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			<tr>
 				<td>verifymessage</td>
 				<td>Check whether the signature is as valid hash for the message for the address.</td>
-				<td class="hidden-xs">/api/?method=verifymessage&address=&#60;address&#62;&message=&#60;message&#62;&signature=&#60;signataure&#62;</td>
+				<td class="hidden-xs">/api/?method=verifymessage&address=&#60;address&#62;&message=&#60;message&#62;&signature=&#60;signature&#62;</td>
 			</tr>
 			<tr>
 				<td>getcharts</td>
