@@ -232,4 +232,8 @@ function calculate_difficulty($nBits) {
 function format_s($number) {
 	return ($number == "1" ? "" : "s");
 }
+
+function calculate_reward($height) {
+	return 66.84999999 * pow(2, floor($height / 100010) * -1);
+}
 ?>
