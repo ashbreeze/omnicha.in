@@ -14,8 +14,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>. */
 session_start();
 require_once('/var/www/omnicha.in/theme/safe/wallet.php');
 require_once('/var/www/omnicha.in/theme/recaptchalib.php');
-$publickey = "6LfrmfYSAAAAAH7wVXhIZ9ORnz1gFqD3Dl7wjjpc";
-$privatekey = "****************************************";
 get_header($pages, $currentpage, "Claim Address");
 ?>
 <div class="container">
@@ -26,7 +24,7 @@ get_header($pages, $currentpage, "Claim Address");
 	$signature_error = false;
 	
 	if (isset($_POST['address']) && isset($_POST['label']) && isset($_POST['hfuid']) && isset($_POST['signature']) && isset($_POST['csrf-token']) && isset($_SESSION['csrf-token']) && isset($_SESSION['signing-message']) && is_string($_POST['address']) && is_string($_POST['label']) && is_string($_POST['hfuid']) && is_string($_POST['signature']) && is_string($_POST['csrf-token']) && $_POST['csrf-token'] == $_SESSION['csrf-token']) {
-		$captcha = recaptcha_check_answer($privatekey, $_SERVER["REMOTE_ADDR"], $_POST["recaptcha_challenge_field"], $_POST["recaptcha_response_field"]);
+		$captcha = recaptcha_check_answer($recaptcha_private, $_SERVER["REMOTE_ADDR"], $_POST["recaptcha_challenge_field"], $_POST["recaptcha_response_field"]);
 
 		if (!$captcha->is_valid) {
 			$captcha_error = true;
@@ -117,7 +115,7 @@ get_header($pages, $currentpage, "Claim Address");
 			</div>
 			<div class="form-group">
 				<?php
-				echo recaptcha_get_html($publickey, null, true);
+				echo recaptcha_get_html($recaptcha_public, null, true);
 				?>
 			</div>
 			<div class="form-group">
