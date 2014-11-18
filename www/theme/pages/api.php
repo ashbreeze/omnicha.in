@@ -16,7 +16,7 @@ require_once('/var/www/omnicha.in/theme/recaptchalib.php');
 
 if (isset($_GET['method']) && is_string($_GET['method'])) {
 	$error = true;
-	$error_message = "Unknown error";
+	$error_message = "UNKNOWN_ERROR";
 	$response = array();
 	if ($_GET['method'] == "getcharts") {
 		$zoom = "3600";
@@ -55,39 +55,35 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		
 		$rich_list = mysqli_query($database, "SELECT b.label, a.address, a.balance, a.rank, a.percent FROM richlist AS a left JOIN claimed_addresses AS b ON (b.address = a.address) ORDER BY a.id LIMIT 0, 25");
 		while ($richie = mysqli_fetch_array($rich_list)) {
-			$response['richlist'][] = array("rank" => $richie['rank'], "address" => $richie['address'], "vanity_name" => $richie['label'] == null ? "" : $richie['label'], "balance" => doubleval($richie['balance']), "usd_value" => doubleval(omc2usd($omc_usd_price, $richie['balance'], 2)), "percent" => doubleval($richie['percent']));
+			$response['richlist'][] = array("rank" => intval($richie['rank']), "address" => $richie['address'], "vanity_name" => $richie['label'] == null ? "" : $richie['label'], "balance" => doubleval($richie['balance']), "usd_value" => doubleval(omc2usd($omc_usd_price, $richie['balance'], 2)), "percent" => doubleval($richie['percent']));
 		}	
 	} else if ($_GET['method'] == "wallet_register") {
-		if (isset($_GET['username']) && isset($_GET['password']) && isset($_GET['passwordConfirm']) && isset($_GET['recapChallenge']) && isset($_GET['recapResp'])) {
-			if (is_string($_GET['username']) && is_string($_GET['password']) && is_string($_GET['passwordConfirm']) && is_string($_GET['recapChallenge']) && is_string($_GET['recapResp'])) {
-				if (!recaptcha_check_answer($recaptcha_private, $_SERVER["REMOTE_ADDR"], $_GET['recapChallenge'], $_GET['recapResp'])->is_valid) {
-					$error_message = "INVALID_CAPTCHA";
-				} else {
-					$username = $_GET['username'];
-					$password = $_GET['password'];
-					$passwordConfirm = $_GET['passwordConfirm'];
+		if (isset($_GET['username']) && isset($_GET['password']) && isset($_GET['passwordConfirm'])) {
+			if (is_string($_GET['username']) && is_string($_GET['password']) && is_string($_GET['passwordConfirm'])) {
+				$username = $_GET['username'];
+				$password = $_GET['password'];
+				$passwordConfirm = $_GET['passwordConfirm'];
+			
+				$usernameSafe = preg_replace('/[^A-Za-z0-9!@#$%^&*=_+?.-]/', '', $username);
+				$passwordSafe = preg_replace('/[^A-Za-z0-9]/', '', $password);
+				$passwordConfirmSafe = preg_replace('/[^A-Za-z0-9]/', '', $passwordConfirm);
 				
-					$usernameSafe = preg_replace('/[^A-Za-z0-9!@#$%^&*=_+?.-]/', '', $username);
-					$passwordSafe = preg_replace('/[^A-Za-z0-9]/', '', $password);
-					$passwordConfirmSafe = preg_replace('/[^A-Za-z0-9]/', '', $passwordConfirm);
+				if ($username == "" || $password == "" || $passwordConfirm == "") {
+					$error_message = "EMPTY_REQUIRED_FIELDS";
+				} else if ($username != $usernameSafe || strlen($usernameSafe) < 3 || strlen($usernameSafe) > 30) {
+					$error_message = "INVALID_USERNAME";
+				} else if (mysqli_query($database, "SELECT id FROM users WHERE username = '" . $usernameSafe . "'")->num_rows != 0) {
+					$error_message = "USERNAME_TAKEN";
+				} else if ($password != $passwordSafe || $passwordConfirm != $passwordConfirmSafe) {
+					$error_message = "INVALID_PASSWORD";
+				} else if ($passwordSafe != $passwordConfirmSafe) {
+					$error_message = "NONMATCHING_PASSWORDS";
+				} else {
+					$salt = hash('sha512', uniqid(mt_rand(1, mt_getrandmax()), true));
+					$passwordSalted = hash('sha512', $passwordSafe . $salt);
 					
-					if ($username == "" || $password == "" || $passwordConfirm == "") {
-						$error_message = "EMPTY_REQUIRED_FIELDS";
-					} else if ($username != $usernameSafe || strlen($usernameSafe) < 3 || strlen($usernameSafe) > 30) {
-						$error_message = "INVALID_USERNAME";
-					} else if (mysqli_query($database, "SELECT id FROM users WHERE username = '" . $usernameSafe . "'")->num_rows != 0) {
-						$error_message = "USERNAME_TAKEN";
-					} else if ($password != $passwordSafe || $passwordConfirm != $passwordConfirmSafe) {
-						$error_message = "INVALID_PASSWORD";
-					} else if ($passwordSafe != $passwordConfirmSafe) {
-						$error_message = "NONMATCHING_PASSWORDS";
-					} else {
-						$salt = hash('sha512', uniqid(mt_rand(1, mt_getrandmax()), true));
-						$passwordSalted = hash('sha512', $passwordSafe . $salt);
-						
-						mysqli_query($database, "INSERT INTO users (username, password, salt) VALUES ('" . $usernameSafe . "', '" . $passwordSalted . "', '" . $salt . "')");
-						$error = false;
-					}
+					mysqli_query($database, "INSERT INTO users (username, password, salt) VALUES ('" . $usernameSafe . "', '" . $passwordSalted . "', '" . $salt . "')");
+					$error = false;
 				}
 			}
 		}
@@ -121,22 +117,8 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				while ($tx = mysqli_fetch_array($address_txs)) {
 					if (abs($tx['value']) >= 1000000) {
 						$response['balance'] += $tx['value'];
-						/*
-						if ($tx['value'] > 0) {
-							$response['total_in'] += $tx['value'];
-						} else {
-							$response['total_out'] -= $tx['value'];
-						}
-						*/
 						if (!isset($txs[$tx['tx_hash']])) {
 							$txs[$tx['tx_hash']] = array("date" => date("y-m-d H:i:s", $tx['block_nTime']), "confirmations" => $lastblock - $tx['block_height'] + 1, "tx_hash" => $tx['tx_hash'], "value" => $tx['value'], "balance" => 0);
-							/*
-							if ($tx['value'] > 0) {
-								$response['tx_in']++;
-							} else {
-								$response['tx_out']++;
-							}
-							*/
 						} else {
 							$txs[$tx['tx_hash']]['value'] += $tx['value'];
 						}
@@ -192,72 +174,22 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 					}
 				}
 			}
-			$response['balance'] = $input_total;
-			$response['pending_balance'] = $input_pending_total - $input_total;
+			$response['balance'] = doubleval($input_total);
+			$response['pending_balance'] = doubleval($input_pending_total - $input_total);
 			$response['omc_usd_price'] = doubleval(omc2usd($omc_usd_price, 1));
 			$error = false;
-			/*
-			$response['tx_out'] = 0;
-			$response['total_out'] = 0;
-			$response['tx_in'] = 0;
-			$response['total_in'] = 0;
-			$response['balance'] = 0;
-			$response['pending_balance'] = 0;
-			$response['transactions'] = array();
-			
-			$txs = array();
-			$transactions = $wallet->listtransactions($login[1]['username'], 9999);
-			foreach($transactions as $tx) {
-				$txs[] = $tx;
-				if ($tx['category'] == "move") {
-					continue;
-				}
-				if ($tx['category'] == "send") {
-					if ($tx['confirmations']) {
-						$response['tx_out'] ++;
-						$response['total_out'] += -$tx['amount'] - $tx['fee'];
-					}
-				} else {
-					if ($tx['confirmations'] >= 1) {
-						$response['tx_in'] ++;
-						$response['total_in'] += $tx['amount'];
-					}
-				}
-			}
-			
-			$response['balance'] = $wallet->getbalance($login[1]['username'], 1);
-			$response['pending_balance'] = $wallet->getbalance($login[1]['username'], 0) - $wallet->getbalance($login[1]['username'], 1);
-
-			$balance = $wallet->getbalance($login[1]['username'], 0);
-			$txs = array_reverse($txs);
-			foreach ($txs as $tx) {
-				if ($tx['category'] == "move") {
-					continue;
-				}
-				$txinfo = $tx['txid'];
-				$confs = $tx['confirmations'];
-
-					
-				$transaction = array("type" => $tx['category'], "txinfo" => $txinfo, "date" => date("y-m-d h:m:s", ($tx['category'] == "move" ? $tx['time'] : $tx['timereceived'])), "confirmations" => $confs, "amount" => $tx['amount'], "balance" => $balance);
-
-				$balance -= $tx['amount'] + ($tx['category'] == "send" ? $tx['fee'] : 0);
-				$response['transactions'][] = $transaction;
-			}
-			$response['addresses'] = $wallet->getaddressesbyaccount($login[1]['username']);
-			$error = false;
-			*/
 		} else {
 			$error_message = $login[0];
 		}
 	} else if ($_GET['method'] == "wallet_genaddr") {
 		$login = check_wallet_login(isset($_GET['username']) ? $_GET['username'] : null, isset($_GET['password']) ? $_GET['password'] : null, $_SERVER['REMOTE_ADDR'], $database, true);
 		if ($login[0] == "GOOD_LOGIN") {
-			if ((strtotime(date("y-m-d H:i:s")) - strtotime($login[1]['last_new_address'])) >= (60 * 60)) {
+			//if ((strtotime(date("y-m-d H:i:s")) - strtotime($login[1]['last_new_address'])) >= (60 * 60)) {
 				$error = false;
 				$address = $wallet->getnewaddress($login[1]['username']);
 				$response['address'] = $address;
 				mysqli_query($database, "UPDATE users SET last_new_address = '" . date("y-m-d H:i:s") . "' WHERE id = '" . $login[1]['id'] . "'");
-			}
+			//}
 		} else {
 			$error_message = $login[0];
 		}
@@ -270,60 +202,51 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 
 				$amount_safe = preg_replace('/[^0-9.]/', '', $amount);
 				$address_safe = preg_replace('/[^A-Za-z0-9]/', '', $address);
-				
-				$error_message = array();
 
-				if ($amount == "" || $address == "") {
-					$error_message[] = "EMPTY_REQUIRED_FIELDS";
-					if ($amount == "") {
-						$error_message[] = "AMOUNT_ERROR";
-					}
-					if ($address == "") {
-						$error_message[] = "ADDRESS_ERROR";
-					}
+				if ($amount == "") {
+					$error_message = "AMOUNT_ERROR";
+				} else if ($address == "") {
+					$error_message = "ADDRESS_ERROR";
 				} else {
 					if ($amount != $amount_safe || !is_numeric($amount_safe) || $amount_safe <= 0) {
-						$error_message[] = "INVALID_AMOUNT";
-					}
-					if ($address != $address_safe || !$wallet->validateaddress($address_safe)['isvalid']) {
-						$error_message[] = "INVALID_ADDRESS";
-					}
-					
-					$adrses = $wallet->getaddressesbyaccount($login[1]['username']);		
-					$input_total = 0;
-					$input_pending_total = 0;
-					if (!empty($adrses)) {
-						$unspent = $wallet->listunspent(0, 9999999, $adrses);
-						foreach ($unspent as $input) {
-							if ($input['confirmations'] >= 1) {
-								$input_total += $input['amount'];
-							} else {
-								$good = true;
-								$in = $wallet->getrawtransaction($input['txid'], 1);
-								foreach ($in['vin'] as $tx) {
-									$in2 = $wallet->getrawtransaction($tx['txid'], 1);
-									foreach ($in2['vout'] as $tx2) {
-										if ($tx2['n'] == $tx['vout']) {
-											foreach ($tx2['scriptPubKey']['addresses'] as $adr) {
-												if ($wallet->getaccount($adr) != $login[1]['username']) {
-													$good = false;
+						$error_message = "INVALID_AMOUNT";
+					} else if ($address != $address_safe || !$wallet->validateaddress($address_safe)['isvalid']) {
+						$error_message = "INVALID_ADDRESS";
+					} else {
+						$adrses = $wallet->getaddressesbyaccount($login[1]['username']);		
+						$input_total = 0;
+						$input_pending_total = 0;
+						if (!empty($adrses)) {
+							$unspent = $wallet->listunspent(0, 9999999, $adrses);
+							foreach ($unspent as $input) {
+								if ($input['confirmations'] >= 1) {
+									$input_total += $input['amount'];
+								} else {
+									$good = true;
+									$in = $wallet->getrawtransaction($input['txid'], 1);
+									foreach ($in['vin'] as $tx) {
+										$in2 = $wallet->getrawtransaction($tx['txid'], 1);
+										foreach ($in2['vout'] as $tx2) {
+											if ($tx2['n'] == $tx['vout']) {
+												foreach ($tx2['scriptPubKey']['addresses'] as $adr) {
+													if ($wallet->getaccount($adr) != $login[1]['username']) {
+														$good = false;
+													}
 												}
 											}
 										}
 									}
-								}
-								if ($good) {
-									$input_total += $input['amount'];
+									if ($good) {
+										$input_total += $input['amount'];
+									}
 								}
 							}
 						}
-					}
-					$balance = $input_total;
-					if (empty($error_message)) {
+						$balance = $input_total;
 						if ($amount_safe > $balance) {
-							$error_message[] = "BROKE";
+							$error_message = "BROKE";
 						} else if ($amount_safe + 0.1 > $balance) {
-							$error_message[] = "BROKE_FEE";
+							$error_message = "BROKE_FEE";
 						} else {
 							$addresses = $wallet->getaddressesbyaccount($login[1]['username']);
 							$unspent = array();
@@ -371,35 +294,11 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 								$wallet->sendrawtransaction($signed_transaction['hex']);
 								$wallet->move($login[1]['username'], "", $input_total);
 								$error = false;
-								$response['amount'] = $amount_safe;
+								$response['amount'] = doubleval($amount_safe);
 								$response['address'] = $address_safe;
+							} else {
+								$error_message = "SEND_ERROR";
 							}
-							
-							/*
-							$addresses = $wallet->getaddressesbyaccount($login[1]['username']);
-							$unspent = $wallet->listunspent(0);
-
-							$inputs = array();
-							foreach ($unspent as $input) {
-								if (!in_array($input['address'], $addresses)) {
-									$inputs[] = $input;
-								}
-							}
-
-							$wallet->settxfee(0.1);
-							$wallet->lockunspent(false, $inputs);
-
-							$send = $wallet->sendfrom($login[1]['username'], $address_safe, doubleval($amount_safe), 1);
-							if ($send) {
-								$error = false;
-								$response['amount'] = $amount_safe;
-								$response['address'] = $address_safe;
-							}
-
-	
-							
-							$wallet->lockunspent(true, $inputs);
-							*/
 						}
 					}
 				}
@@ -415,23 +314,21 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 
 				$privkey_safe = preg_replace('/[^A-Za-z0-9]/', '', $privkey);
 				
-				//$resp = $wallet->importprivkey($privkey_safe, $login[1]['username']);
-				//if ($resp) {
-				//	$error = false;
-				//}
+				/*
+				$resp = $wallet->importprivkey($privkey_safe, $login[1]['username']);
+				if ($resp) {
+					$error = false;
+				}
+				*/
 			}
 		} else {
 			$error_message = $login[0];
 		}
-	}
-	
-	
-	
-	else if ($_GET['method'] == "getbalance") {
+	} else if ($_GET['method'] == "getbalance") {
 		if (isset($_GET['address']) && is_string($_GET['address'])) {
 			$address_safe = $size = preg_replace('/[^A-Za-z0-9]/', '', $_GET['address']);
 			if (!$wallet->validateaddress($address_safe)['isvalid']) {
-				$error_message = "Invalid address";
+				$error_message = "INVALID_ADDRESS";
 			} else {
 				$error = false;
 				
@@ -445,7 +342,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				$response = array("balance" => format_satoshi(doubleval($balance)));
 			}
 		} else {
-			$error_message = "Address not specified";
+			$error_message = "ADDRESS_NOT_SPECIFIED";
 		}
 	} else if ($_GET['method'] == "checkaddress") {
 		if (isset($_GET['address']) && is_string($_GET['address'])) {
@@ -453,7 +350,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			$address_safe = $size = preg_replace('/[^A-Za-z0-9]/', '', $_GET['address']);
 			$response = array("isvalid" => $wallet->validateaddress($address_safe)['isvalid']);
 		} else {
-			$error_message = "Address not specified";
+			$error_message = "ADDRESS_NOT_SPECIFIED";
 		}
 	} else if ($_GET['method'] == "getinfo") {
 		$error = false;
@@ -495,16 +392,16 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 
 					$response = array("isvalid" => $wallet->verifymessage($address_safe, $signature_safe, $message_safe));
 				} else {
-					$error_message = "Signature not specified";
+					$error_message = "SIGNATURE_NOT_SPECIFIED";
 				}
 			} else {
-				$error_message = "Message not specified";
+				$error_message = "MESSAGE_NOT_SPEFICIED";
 			}
 		} else {
-			$error_message = "Address not specified";
+			$error_message = "ADDRESS_NOT_SPECIFIED";
 		}
 	} else {
-		$error_message = "Unknown API method";
+		$error_message = "UNKOWN_API_METHOD";
 	}
 	if ($error) {
 		echo json_encode(array("error" => $error, "error_info" => $error_message));
@@ -516,7 +413,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 	?>
 	<div class="container">
 		<div class="alert alert-info">
-			Updating the API docs. Some data may be inaccurate or incomplete.
+			Updating the API and the API docs. Some data may be inaccurate or incomplete and is subject to change.
 		</div>
 		<h3>API Methods</h3>
 		<table class="table table-striped">
@@ -552,7 +449,6 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<td><a href="#getwstats-docs" onClick="$('#panel-7').collapse('show');">getwstats</a></td>
 				<td>Get total users and total balance of all online wallet accounts</td>
 			</tr>
-			<?php /* 
 			<tr>
 				<td><a href="#wallet_register-docs" onClick="$('#panel-8').collapse('show');">wallet_register</a></td>
 				<td>Registers for an online wallet</td>
@@ -577,7 +473,6 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<td><a href="#wallet_importkey-docs" onClick="$('#panel-13').collapse('show');">wallet_importkey</a></td>
 				<td>Imports a private key into an online wallet (Currently disabled)</td>
 			</tr>
-			*/ ?>
 		</table>
 		<div class="panel panel-default">
 			<div class="panel-heading">
@@ -585,11 +480,61 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			</div>
 			<div class="panel-body">
 				<p>
-					Every call uses the endpoint <code>https://www.omnicha.in/api/</code>. The API method and all arguments are appended as GET arguments. All responses from the server will be in JSON format.
+					Every call uses the endpoint <code>https://omnicha.in/api/</code>. The API method and all arguments are appended as GET arguments. All responses from the server will be in JSON format.
 				</p>
 				<p>
 					The API will return an array with 2 elements, <code>error</code> and <code>error_info</code> or <code>response</code>. If any error occurred <code>error</code> will equal <code>TRUE</code> and <code>error_info</code> will be populated with the error info. If no error occurred, <code>error</code> will be <code>FALSE</code> and <code>response</code> will contain any returned information from the API call.
 				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>method <span class="label label-info">String</span></td>
+							<td>The requested API method</td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>error <span class="label label-info">Boolean</span></td>
+							<td>Whether any error occurred</td>
+						</tr>
+						<tr>
+							<td>error_info <span class="label label-info">Boolean</span></td>
+							<td>If an error occurred, this will contain the specific error that occurred</td>
+						</tr>
+						<tr>
+							<td>response <span class="label label-info">Array()</span></td>
+							<td>If no error occurred, this will contain the response from the API</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>UNKOWN_API_METHOD</td>
+							<td>The requested API method was not found</td>
+						</tr>
+						<tr>
+							<td>UNKNOWN_ERROR</td>
+							<td>An unknown error occurred</td>
+						</tr>
+					</table>
+				</div>
 				<br />
 				<p>
 					Example API call to <code>https://omnicha.in/api/?method=testcall</code> with error:
@@ -709,7 +654,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Required</th>
 						</tr>
 						<tr>
-							<td>Address <span class="label label-info">String</span></td>
+							<td>address <span class="label label-info">String</span></td>
 							<td>The Omnicoin address</td>
 							<td>Yes</td>
 						</tr>
@@ -734,12 +679,12 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Description</th>
 						</tr>
 						<tr>
-							<td>Invalid address</td>
-							<td>The Omnicoin address specified is invalid</td>
+							<td>INVALID_ADDRESS</td>
+							<td><code>address</code> is an invalid Omnicoin address</td>
 						</tr>
 						<tr>
-							<td>Address not specified</td>
-							<td>No address parameter was passed to the API</td>
+							<td>ADDRESS_NOT_SPECIFIED</td>
+							<td><code>address</code> was not passed to the API</td>
 						</tr>
 					</table>
 				</div>
@@ -773,7 +718,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Required</th>
 						</tr>
 						<tr>
-							<td>Address <span class="label label-info">String</span></td>
+							<td>address <span class="label label-info">String</span></td>
 							<td>The Omnicoin address</td>
 							<td>Yes</td>
 						</tr>
@@ -787,7 +732,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 						</tr>
 						<tr>
 							<td>isvalid <span class="label label-info">Boolean</span></td>
-							<td>If the specified address is valid</td>
+							<td>If <code>address</code> is valid</td>
 						</tr>
 					</table>
 				</div>
@@ -798,12 +743,8 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Description</th>
 						</tr>
 						<tr>
-							<td>Invalid address</td>
-							<td>The Omnicoin address specified is invalid</td>
-						</tr>
-						<tr>
-							<td>Address not specified</td>
-							<td>No address parameter was passed to the API</td>
+							<td>ADDRESS_NOT_SPECIFIED</td>
+							<td><code>address</code> was not passed to the API</td>
 						</tr>
 					</table>
 				</div>
@@ -837,18 +778,18 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Required</th>
 						</tr>
 						<tr>
-							<td>Address <span class="label label-info">String</span></td>
+							<td>address <span class="label label-info">String</span></td>
 							<td>The Omnicoin address</td>
 							<td>Yes</td>
 						</tr>
 						<tr>
-							<td>Message <span class="label label-info">String</span></td>
+							<td>message <span class="label label-info">String</span></td>
 							<td>The message that was signed</td>
 							<td>Yes</td>
 						</tr>
 						<tr>
-							<td>Signature <span class="label label-info">String</span></td>
-							<td>The signature generated from signing the message</td>
+							<td>signature <span class="label label-info">String</span></td>
+							<td>The signature generated from signing <code>mesage</code> with <code>address</code></td>
 							<td>Yes</td>
 						</tr>
 					</table>
@@ -861,7 +802,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 						</tr>
 						<tr>
 							<td>isvalid <span class="label label-info">Boolean</span></td>
-							<td>If the specified signature is valid</td>
+							<td>If <code>signature</code> is valid</td>
 						</tr>
 					</table>
 				</div>
@@ -872,16 +813,16 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Description</th>
 						</tr>
 						<tr>
-							<td>Address not specified</td>
-							<td>No address parameter was passed to the API</td>
+							<td>ADDRESS_NOT_SPECIFIED</td>
+							<td><code>address</code> was not passed to the API</td>
 						</tr>
 						<tr>
-							<td>Message not specified</td>
-							<td>No message parameter was passed to the API</td>
+							<td>MESSAGE_NOT_SPECIFIED</td>
+							<td><code>message</code> was not passed to the API</td>
 						</tr>
 						<tr>
-							<td>Signature not specified</td>
-							<td>No signature parameter was passed to the API</td>
+							<td>SIGNATURE_NOT_SPECIFIED</td>
+							<td><code>signature</code> was not passed to the API</td>
 						</tr>
 					</table>
 				</div>
@@ -916,7 +857,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Required</th>
 						</tr>
 						<tr>
-							<td>Zoom <span class="label label-info">Integer</span></td>
+							<td>zoom <span class="label label-info">Integer</span></td>
 							<td>Seconds between data entries</td>
 							<td>900, 1800, 3600, 21600, 43200, 86400</td>
 							<td>No (defaults 3600)</td>
@@ -1020,15 +961,6 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<div class="panel panel-default">
 					<table class="table table-striped">
 						<tr>
-							<th>Argument</th>
-							<th>Description</th>
-							<th>Required</th>
-						</tr>
-					</table>
-				</div>
-				<div class="panel panel-default">
-					<table class="table table-striped">
-						<tr>
 							<th>Return Variable</th>
 							<th>Description</th>
 						</tr>
@@ -1074,12 +1006,19 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		"last_update": "14-11-17 21:03:49",
 		"richlist": [
 			{
-				"rank": "1", 
+				"rank": 1, 
 				"address": "oK6tf99VfiqovtG8YSWBMSBZZ7Ei6poyLe",
 				"vanity_name": "Omni's Phat Wallet",
 				"balance": 2700715.849678,
 				"usd_value": 3797.6,
 				"percent": 37.971726543451
+			}, {
+				"rank": 2,
+				"address": "oQ2Z6DZBzWxkJKfW2exNb1XhCnRuc6LFBE",
+				"vanity_name": "",
+				"balance": 237757.2147062,
+				"usd_value": 326.32,
+				"percent": 3.3350627633622
 			}, ...
 		]
 	}
@@ -1121,6 +1060,536 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 	"response": {
 		"users": 81, 
 		"balance": 7426.45055478
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_register-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-8" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_register
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-8" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_register method registers for an online wallet. No parameters are returned.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>The username to register. Must be between 3 and 30 characters.</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>The password to register with. Must by SHA512 encoded</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>passwordConfirm <span class="label label-info">String</span></td>
+							<td>The password to register with confirmation. Must by SHA512 encoded and equal <code>password</code></td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>EMPTY_REQUIRED_FIELDS</td>
+							<td><code>username</code>, <code>password</code>, or <code>passwordConfirm</code> is empty</td>
+						</tr>
+						<tr>
+							<td>INVALID_USERNAME</td>
+							<td><code>username</code> does not meet character length requirements or contains invalid characters</td>
+						</tr>
+						<tr>
+							<td>USERNAME_TAKEN</td>
+							<td><code>username</code> is taken</td>
+						</tr>
+						<tr>
+							<td>INVALID_PASSWORD</td>
+							<td><code>password</code> or <code>passwordConfirm</code> contain invalid characters</td>
+						</tr>
+						<tr>
+							<td>NONMATCHING_PASSWORDS</td>
+							<td><code>password</code> and <code>passwordConfirm</code> don't match</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_register&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff&passwordConfirm=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": []
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_login-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-9" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_login
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-9" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_login method logs into an online wallet and gets a session token.
+				</p>
+								<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>session <span class="label label-info">String</span></td>
+							<td>A new session variable</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>The username to register. Must be between 3 and 30 characters.</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>The password to register with. Must by SHA512 encoded</td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
+						</tr>
+						<tr>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>password</code> are invalid</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_login&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": {
+		"session": "de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e"
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_getinfo-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-10" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_getinfo
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-10" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_getinfo method gets addresses, balances, and transactions for an online wallet. A valid username and session are required.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>A valid online wallet username</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>A valid session for the <code>username</code></td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>tx_out <span class="label label-info">Integer</span></td>
+							<td>The total number of outgoing transactions</td>
+						</tr>
+						<tr>
+							<td>total_out <span class="label label-info">Integer</span></td>
+							<td>The total number of sathoshis sent</td>
+						</tr>
+						<tr>
+							<td>tx_in <span class="label label-info">Integer</span></td>
+							<td>The total number of incoming transactions</td>
+						</tr>
+						<tr>
+							<td>total_in <span class="label label-info">Integer</span></td>
+							<td>The total number of sathoshis received</td>
+						</tr>
+						<tr>
+							<td>balance <span class="label label-info">Double</span></td>
+							<td>The current balance</td>
+						</tr>
+						<tr>
+							<td>pending_balance <span class="label label-info">Double</span></td>
+							<td>The current amount of unconfirmed OMC</td>
+						</tr>
+						<tr>
+							<td>transactions <span class="label label-info">Array([tx])</span></td>
+							<td>Array of all transactions</td>
+						</tr>
+						<tr>
+							<td>[tx]->date <span class="label label-info">String</span></td>
+							<td>Timestamp of transaction</td>
+						</tr>
+						<tr>
+							<td>[tx]->confirmations <span class="label label-info">Integer</span></td>
+							<td>Number of confirmations</td>
+						</tr>
+						<tr>
+							<td>[tx]->tx_hash <span class="label label-info">String</span></td>
+							<td>Transaction hash</td>
+						</tr>
+						<tr>
+							<td>[tx]->value <span class="label label-info">Integer</span></td>
+							<td>Value of the transaction in satoshis</td>
+						</tr>
+						<tr>
+							<td>[tx]->balance <span class="label label-info">Integer</span></td>
+							<td>Account balance after transaction in satoshis</td>
+						</tr>
+						<tr>
+							<td>omc_usd_price <span class="label label-info">Double</span></td>
+							<td>Conversion ratio between Omnicoin and United States Dollars</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
+						</tr>
+						<tr>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>session</code> are invalid</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_getinfo&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": {
+		"tx_out": 1,
+		"total_out": 100000000,
+		"tx_in": 1,
+		"total_in": 56141646583,
+		"balance": 561.41646583,
+		"pending_balance": 0,
+		"transactions": [
+			{
+				"date": "14-10-31 17:07:47", 
+				"confirmations": 9001,
+				"tx_hash": "7ca3f9a009348a7b0428c55b2366af865371161da40e9a1bf8a2b31092c28f01",
+				"value": "56141646583", 
+				"balance": 56141646583
+			}, {
+				"date": "14-10-31 17:07:48", 
+				"confirmations": 9001,
+				"tx_hash": "46f861131092cf9a0091da40e9a1bf8a2b337b0428c55b2366a8a28f05377ca1",
+				"value": "100000000", 
+				"balance": 56041646583
+			}, ...
+		],
+		"addresses": [
+			{
+				"address": "ocWPedKAvmpmfYcYs7nGgUreaTWsoVisTT",
+				"private_key": "wfQ8jewGETDs5HPKmcoPcBZe433J39Z48Csh9Epbb3d3yVy2iMy"
+			}
+		],
+		"omc_usd_price": 0.0014
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_genaddr-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-11" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_genaddr
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-11" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_genaddr method generates and adds a new address to an online wallet. A valid username and session are required.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>A valid online wallet username</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>A valid session for the <code>username</code></td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>address <span class="label label-info">String</span></td>
+							<td>The address generated</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
+						</tr>
+						<tr>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>session</code> are invalid</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_genaddr&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": {
+		"address": "oYkhfMSwQqHyTVgocefyc17sBQyHGxXMJ3"
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_importkey-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-12" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_send
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-12" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_send method sends OMC to an address from an online wallet. A valid username and session are required.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>A valid online wallet username</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>A valid session for the <code>username</code></td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>address <span class="label label-info">String</span></td>
+							<td>A valid Omnicoin address</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>amount <span class="label label-info">Double</span></td>
+							<td>The amount of Omnicoins to send</td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>address <span class="label label-info">String</span></td>
+							<td>The address the OMC was sent to</td>
+						</tr>
+						<tr>
+							<td>amount <span class="label label-info">Double</span></td>
+							<td>The amount of Omnicoins sent</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
+						</tr>
+						<tr>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>session</code> are invalid</td>
+						</tr>
+						<tr>
+							<td>AMOUNT_ERROR</td>
+							<td>The <code>amount</code> parameter is empty</td>
+						</tr>
+						<tr>
+							<td>ADDRESS_ERROR</td>
+							<td>The <code>address</code> parameter is empty</td>
+						</tr>
+						<tr>
+							<td>INVALID_AMOUNT</td>
+							<td>The <code>amount</code> parameter contains invalid characters</td>
+						</tr>
+						<tr>
+							<td>INVALID_ADDRESS</td>
+							<td>The <code>address</code> parameter contains invalid characters</td>
+						</tr>
+						<tr>
+							<td>BROKE</td>
+							<td>The <code>amount</code> parameter is greater than the amount of Omnicoin in the account</td>
+						</tr>
+						<tr>
+							<td>BROKE_FEE</td>
+							<td>The <code>amount</code> parameter is greater than the amount of Omnicoin in the account when the fee (0.1 OMC) is included</td>
+						</tr>
+						<tr>
+							<td>SEND_ERROR</td>
+							<td>An error occurred creating the transaction</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_send&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e&address=oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa&amount=1</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": {
+		"address": "oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa",
+		"amount": 1
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+				<div class="panel panel-default" id="wallet_send-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-13" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_importkey
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-13" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_importkey method imports a private key into an online wallet. A valid username and session are required. No parameters are returned.
+				</p>
+				<p>
+					<b>Note:</b> This API call is currently disabled.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>A valid online wallet username</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>A valid session for the <code>username</code></td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>privkey <span class="label label-info">String</span></td>
+							<td>A valid Omnicoin private key</td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
+						</tr>
+						<tr>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>session</code> are invalid</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_importkey&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e&address=oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa&privkey=5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": {
 	}
 }</code></pre>
 				</p>

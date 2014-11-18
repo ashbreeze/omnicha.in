@@ -20,18 +20,9 @@ var cron3;
 var idle = 0;
 
 $(document).ready(function() {
-	//$('#warning-modal').modal('show');
 	$(".tip-right").tooltip({
 		placement : 'right'
 	});
-	Recaptcha.create("6LdW6f0SAAAAAHufm-Duc9DQrmxoSPuk6FZqpqlM",
-		"register-recaptcha",
-		{
-		  theme: "custom",
-		  callback: Recaptcha.focus_response_field,
-		  custom_theme_widget: 'recaptcha_widget'
-		}
-	);
 	$("#send-amount").keyup(function() {
 		$("#send-amount-usd").val($("#send-amount").val() == "" ? "" : (omc2usd(omcPrice, $("#send-amount").val(), 1000000)));
 	});
@@ -84,7 +75,7 @@ function register() {
 	$("#register-password-group").removeClass("has-error");
 	$("#register-password-confirm-group").removeClass("has-error");
 	$(".register-alert").remove();
-	var json = {"method": "wallet_register", "username": $("#register-username").val(), "password": hex_sha512($("#register-password").val()), "passwordConfirm": hex_sha512($("#register-password-confirm").val()), "recapChallenge": Recaptcha.get_challenge(), "recapResp": Recaptcha.get_response()};
+	var json = {"method": "wallet_register", "username": $("#register-username").val(), "password": hex_sha512($("#register-password").val()), "passwordConfirm": hex_sha512($("#register-password-confirm").val())};
 	$.ajax({
 		url: "/api",
 		type: "GET",
@@ -96,10 +87,7 @@ function register() {
 		$(".register-alert").remove();
 		var jsonResponse = jQuery.parseJSON(data);
 		if (jsonResponse.error) {
-			Recaptcha.reload();
-			if (jsonResponse.error_info == "INVALID_CAPTCHA") {
-				$("#register-form").prepend("<div class='alert alert-danger register-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Invalid Captcha</div>")
-			} else if (jsonResponse.error_info == "EMPTY_REQUIRED_FIELDS") {
+			if (jsonResponse.error_info == "EMPTY_REQUIRED_FIELDS") {
 				$("#register-username-group").addClass("has-error");
 				$("#register-password-group").addClass("has-error");
 				$("#register-password-confirm-group").addClass("has-error");
@@ -238,21 +226,21 @@ function sendomnicoins() {
 		if (jsonResponse.error) {
 			if (jsonResponse.error_info == "BAD_LOGIN") {
 				logout();
-			} else if ($.inArray("INVALID_AMOUNT", jsonResponse.error_info) != -1 || $.inArray("AMOUNT_ERROR", jsonResponse.error_info) != -1) {
-				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Invalid amount.</div>")
+			} else if (jsonResponse.error_info == "INVALID_AMOUNT" || jsonResponse.error_info == "AMOUNT_ERROR") {
+				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Invalid amount.</div>");
 				$("#send-amount-group").addClass("has-error");
-			} else if ($.inArray("INVALID_ADDRESS", jsonResponse.error_info) != -1 || $.inArray("ADDRESS_ERROR", jsonResponse.error_info) != -1) {
-				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Invalid address.</div>")
+			} else if (jsonResponse.error_info == "INVALID_ADDRESS" || jsonResponse.error_info == "ADDRESS_ERROR") {
+				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Invalid address.</div>");
 				$("#send-address-group").addClass("has-error");
-			} else if ($.inArray("EMPTY_REQUIRED_FIELDS", jsonResponse.error_info) != -1) {
-				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Required fields left empty.</div>")
-			} else if ($.inArray("BROKE", jsonResponse.error_info) != -1) {
-				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>You don't have that many OmniCoins!</div>")
-			} else if ($.inArray("BROKE_FEE", jsonResponse.error_info) != -1) {
-				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>You don't have enough OmniCoins to include a transaction fee! (0.1 OMC)</div>")
+			} else if (jsonResponse.error_info == "EMPTY_REQUIRED_FIELDS") {
+				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Required fields left empty.</div>");
+			} else if (jsonResponse.error_info == "BROKE") {
+				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>You don't have that many OmniCoins!</div>");
+			} else if (jsonResponse.error_info == "BROKE_FEE") {
+				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>You don't have enough OmniCoins to include a transaction fee! (0.1 OMC)</div>");
 			}
 		} else {
-			$(".tab-1").prepend("<div class='alert alert-success send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Sent " + jsonResponse.response.amount + " OMC to " + jsonResponse.response.address + "</div>")
+			$(".tab-1").prepend("<div class='alert alert-success send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Sent " + jsonResponse.response.amount + " OMC to " + jsonResponse.response.address + "</div>");
 			$("#send-amount").val("");
 			$("#send-address").val("");
 			getwalletinfo();
