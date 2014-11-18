@@ -16,7 +16,7 @@ require_once('/var/www/omnicha.in/theme/recaptchalib.php');
 
 if (isset($_GET['method']) && is_string($_GET['method'])) {
 	$error = true;
-	$error_message = "UNKNWN_ERROR";
+	$error_message = "UNKNOWN_ERROR";
 	$response = array();
 	if ($_GET['method'] == "getcharts") {
 		$zoom = "3600";
@@ -174,8 +174,8 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 					}
 				}
 			}
-			$response['balance'] = $input_total;
-			$response['pending_balance'] = $input_pending_total - $input_total;
+			$response['balance'] = doubleval($input_total);
+			$response['pending_balance'] = doubleval($input_pending_total - $input_total);
 			$response['omc_usd_price'] = doubleval(omc2usd($omc_usd_price, 1));
 			$error = false;
 		} else {
@@ -184,12 +184,12 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 	} else if ($_GET['method'] == "wallet_genaddr") {
 		$login = check_wallet_login(isset($_GET['username']) ? $_GET['username'] : null, isset($_GET['password']) ? $_GET['password'] : null, $_SERVER['REMOTE_ADDR'], $database, true);
 		if ($login[0] == "GOOD_LOGIN") {
-			if ((strtotime(date("y-m-d H:i:s")) - strtotime($login[1]['last_new_address'])) >= (60 * 60)) {
+			//if ((strtotime(date("y-m-d H:i:s")) - strtotime($login[1]['last_new_address'])) >= (60 * 60)) {
 				$error = false;
 				$address = $wallet->getnewaddress($login[1]['username']);
 				$response['address'] = $address;
 				mysqli_query($database, "UPDATE users SET last_new_address = '" . date("y-m-d H:i:s") . "' WHERE id = '" . $login[1]['id'] . "'");
-			}
+			//}
 		} else {
 			$error_message = $login[0];
 		}
@@ -202,60 +202,51 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 
 				$amount_safe = preg_replace('/[^0-9.]/', '', $amount);
 				$address_safe = preg_replace('/[^A-Za-z0-9]/', '', $address);
-				
-				$error_message = array();
 
-				if ($amount == "" || $address == "") {
-					$error_message[] = "EMPTY_REQUIRED_FIELDS";
-					if ($amount == "") {
-						$error_message[] = "AMOUNT_ERROR";
-					}
-					if ($address == "") {
-						$error_message[] = "ADDRESS_ERROR";
-					}
+				if ($amount == "") {
+					$error_message = "AMOUNT_ERROR";
+				} else if ($address == "") {
+					$error_message = "ADDRESS_ERROR";
 				} else {
 					if ($amount != $amount_safe || !is_numeric($amount_safe) || $amount_safe <= 0) {
-						$error_message[] = "INVALID_AMOUNT";
-					}
-					if ($address != $address_safe || !$wallet->validateaddress($address_safe)['isvalid']) {
-						$error_message[] = "INVALID_ADDRESS";
-					}
-					
-					$adrses = $wallet->getaddressesbyaccount($login[1]['username']);		
-					$input_total = 0;
-					$input_pending_total = 0;
-					if (!empty($adrses)) {
-						$unspent = $wallet->listunspent(0, 9999999, $adrses);
-						foreach ($unspent as $input) {
-							if ($input['confirmations'] >= 1) {
-								$input_total += $input['amount'];
-							} else {
-								$good = true;
-								$in = $wallet->getrawtransaction($input['txid'], 1);
-								foreach ($in['vin'] as $tx) {
-									$in2 = $wallet->getrawtransaction($tx['txid'], 1);
-									foreach ($in2['vout'] as $tx2) {
-										if ($tx2['n'] == $tx['vout']) {
-											foreach ($tx2['scriptPubKey']['addresses'] as $adr) {
-												if ($wallet->getaccount($adr) != $login[1]['username']) {
-													$good = false;
+						$error_message = "INVALID_AMOUNT";
+					} else if ($address != $address_safe || !$wallet->validateaddress($address_safe)['isvalid']) {
+						$error_message = "INVALID_ADDRESS";
+					} else {
+						$adrses = $wallet->getaddressesbyaccount($login[1]['username']);		
+						$input_total = 0;
+						$input_pending_total = 0;
+						if (!empty($adrses)) {
+							$unspent = $wallet->listunspent(0, 9999999, $adrses);
+							foreach ($unspent as $input) {
+								if ($input['confirmations'] >= 1) {
+									$input_total += $input['amount'];
+								} else {
+									$good = true;
+									$in = $wallet->getrawtransaction($input['txid'], 1);
+									foreach ($in['vin'] as $tx) {
+										$in2 = $wallet->getrawtransaction($tx['txid'], 1);
+										foreach ($in2['vout'] as $tx2) {
+											if ($tx2['n'] == $tx['vout']) {
+												foreach ($tx2['scriptPubKey']['addresses'] as $adr) {
+													if ($wallet->getaccount($adr) != $login[1]['username']) {
+														$good = false;
+													}
 												}
 											}
 										}
 									}
-								}
-								if ($good) {
-									$input_total += $input['amount'];
+									if ($good) {
+										$input_total += $input['amount'];
+									}
 								}
 							}
 						}
-					}
-					$balance = $input_total;
-					if (empty($error_message)) {
+						$balance = $input_total;
 						if ($amount_safe > $balance) {
-							$error_message[] = "BROKE";
+							$error_message = "BROKE";
 						} else if ($amount_safe + 0.1 > $balance) {
-							$error_message[] = "BROKE_FEE";
+							$error_message = "BROKE_FEE";
 						} else {
 							$addresses = $wallet->getaddressesbyaccount($login[1]['username']);
 							$unspent = array();
@@ -303,8 +294,10 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 								$wallet->sendrawtransaction($signed_transaction['hex']);
 								$wallet->move($login[1]['username'], "", $input_total);
 								$error = false;
-								$response['amount'] = $amount_safe;
+								$response['amount'] = doubleval($amount_safe);
 								$response['address'] = $address_safe;
+							} else {
+								$error_message = "SEND_ERROR";
 							}
 						}
 					}
@@ -420,7 +413,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 	?>
 	<div class="container">
 		<div class="alert alert-info">
-			Updating the API docs. Some data may be inaccurate or incomplete.
+			Updating the API and the API docs. Some data may be inaccurate or incomplete and is subject to change.
 		</div>
 		<h3>API Methods</h3>
 		<table class="table table-striped">
@@ -1072,7 +1065,6 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				</p>
 			</div>
 		</div>
-		<?php /*
 		<div class="panel panel-default" id="wallet_register-docs">
 			<div class="panel-heading" data-toggle="collapse" href="#panel-8" aria-expanded="false" style="cursor: pointer;">
 				<h4 class="panel-title">
@@ -1154,8 +1146,20 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			</div>
 			<div id="panel-9" class="panel-body panel-collapse collapse">
 				<p>
-					The wallet_login method logs into an online wallet and gets a session token. No parameters are returned.
+					The wallet_login method logs into an online wallet and gets a session token.
 				</p>
+								<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>session <span class="label label-info">String</span></td>
+							<td>A new session variable</td>
+						</tr>
+					</table>
+				</div>
 				<div class="panel panel-default">
 					<table class="table table-striped">
 						<tr>
@@ -1182,37 +1186,415 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Description</th>
 						</tr>
 						<tr>
-							<td>EMPTY_REQUIRED_FIELDS</td>
-							<td><code>username</code>, <code>password</code>, or <code>passwordConfirm</code> is empty</td>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
 						</tr>
 						<tr>
-							<td>INVALID_USERNAME</td>
-							<td><code>username</code> does not meet character length requirements or contains invalid characters</td>
-						</tr>
-						<tr>
-							<td>USERNAME_TAKEN</td>
-							<td><code>username</code> is taken</td>
-						</tr>
-						<tr>
-							<td>INVALID_PASSWORD</td>
-							<td><code>password</code> or <code>passwordConfirm</code> contain invalid characters</td>
-						</tr>
-						<tr>
-							<td>NONMATCHING_PASSWORDS</td>
-							<td><code>password</code> and <code>passwordConfirm</code> don't match</td>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>password</code> are invalid</td>
 						</tr>
 					</table>
 				</div>
 				<p>
-					Example API call to <code>https://omnicha.in/api?method=wallet_register&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff&passwordConfirm=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff</code>
+					Example API call to <code>https://omnicha.in/api?method=wallet_login&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff</code>
 					<pre><code class="language-json">{
 	"error": false,
-	"response": []
+	"response": {
+		"session": "de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e"
+	}
 }</code></pre>
 				</p>
 			</div>
 		</div>
-		*/ ?>
+		<div class="panel panel-default" id="wallet_getinfo-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-10" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_getinfo
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-10" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_getinfo method gets addresses, balances, and transactions for an online wallet. A valid username and session are required.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>A valid online wallet username</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>A valid session for the <code>username</code></td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>tx_out <span class="label label-info">Integer</span></td>
+							<td>The total number of outgoing transactions</td>
+						</tr>
+						<tr>
+							<td>total_out <span class="label label-info">Integer</span></td>
+							<td>The total number of sathoshis sent</td>
+						</tr>
+						<tr>
+							<td>tx_in <span class="label label-info">Integer</span></td>
+							<td>The total number of incoming transactions</td>
+						</tr>
+						<tr>
+							<td>total_in <span class="label label-info">Integer</span></td>
+							<td>The total number of sathoshis received</td>
+						</tr>
+						<tr>
+							<td>balance <span class="label label-info">Double</span></td>
+							<td>The current balance</td>
+						</tr>
+						<tr>
+							<td>pending_balance <span class="label label-info">Double</span></td>
+							<td>The current amount of unconfirmed OMC</td>
+						</tr>
+						<tr>
+							<td>transactions <span class="label label-info">Array([tx])</span></td>
+							<td>Array of all transactions</td>
+						</tr>
+						<tr>
+							<td>[tx]->date <span class="label label-info">String</span></td>
+							<td>Timestamp of transaction</td>
+						</tr>
+						<tr>
+							<td>[tx]->confirmations <span class="label label-info">Integer</span></td>
+							<td>Number of confirmations</td>
+						</tr>
+						<tr>
+							<td>[tx]->tx_hash <span class="label label-info">String</span></td>
+							<td>Transaction hash</td>
+						</tr>
+						<tr>
+							<td>[tx]->value <span class="label label-info">Integer</span></td>
+							<td>Value of the transaction in satoshis</td>
+						</tr>
+						<tr>
+							<td>[tx]->balance <span class="label label-info">Integer</span></td>
+							<td>Account balance after transaction in satoshis</td>
+						</tr>
+						<tr>
+							<td>omc_usd_price <span class="label label-info">Double</span></td>
+							<td>Conversion ratio between Omnicoin and United States Dollars</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
+						</tr>
+						<tr>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>session</code> are invalid</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_getinfo&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": {
+		"tx_out": 1,
+		"total_out": 100000000,
+		"tx_in": 1,
+		"total_in": 56141646583,
+		"balance": 561.41646583,
+		"pending_balance": 0,
+		"transactions": [
+			{
+				"date": "14-10-31 17:07:47", 
+				"confirmations": 9001,
+				"tx_hash": "7ca3f9a009348a7b0428c55b2366af865371161da40e9a1bf8a2b31092c28f01",
+				"value": "56141646583", 
+				"balance": 56141646583
+			}, {
+				"date": "14-10-31 17:07:48", 
+				"confirmations": 9001,
+				"tx_hash": "46f861131092cf9a0091da40e9a1bf8a2b337b0428c55b2366a8a28f05377ca1",
+				"value": "100000000", 
+				"balance": 56041646583
+			}, ...
+		],
+		"addresses": [
+			{
+				"address": "ocWPedKAvmpmfYcYs7nGgUreaTWsoVisTT",
+				"private_key": "wfQ8jewGETDs5HPKmcoPcBZe433J39Z48Csh9Epbb3d3yVy2iMy"
+			}
+		],
+		"omc_usd_price": 0.0014
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_genaddr-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-11" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_genaddr
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-11" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_genaddr method generates and adds a new address to an online wallet. A valid username and session are required.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>A valid online wallet username</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>A valid session for the <code>username</code></td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>address <span class="label label-info">String</span></td>
+							<td>The address generated</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
+						</tr>
+						<tr>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>session</code> are invalid</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_genaddr&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": {
+		"address": "oYkhfMSwQqHyTVgocefyc17sBQyHGxXMJ3"
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_importkey-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-12" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_send
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-12" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_send method sends OMC to an address from an online wallet. A valid username and session are required.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>A valid online wallet username</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>A valid session for the <code>username</code></td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>address <span class="label label-info">String</span></td>
+							<td>A valid Omnicoin address</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>amount <span class="label label-info">Double</span></td>
+							<td>The amount of Omnicoins to send</td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>address <span class="label label-info">String</span></td>
+							<td>The address the OMC was sent to</td>
+						</tr>
+						<tr>
+							<td>amount <span class="label label-info">Double</span></td>
+							<td>The amount of Omnicoins sent</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
+						</tr>
+						<tr>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>session</code> are invalid</td>
+						</tr>
+						<tr>
+							<td>AMOUNT_ERROR</td>
+							<td>The <code>amount</code> parameter is empty</td>
+						</tr>
+						<tr>
+							<td>ADDRESS_ERROR</td>
+							<td>The <code>address</code> parameter is empty</td>
+						</tr>
+						<tr>
+							<td>INVALID_AMOUNT</td>
+							<td>The <code>amount</code> parameter contains invalid characters</td>
+						</tr>
+						<tr>
+							<td>INVALID_ADDRESS</td>
+							<td>The <code>address</code> parameter contains invalid characters</td>
+						</tr>
+						<tr>
+							<td>BROKE</td>
+							<td>The <code>amount</code> parameter is greater than the amount of Omnicoin in the account</td>
+						</tr>
+						<tr>
+							<td>BROKE_FEE</td>
+							<td>The <code>amount</code> parameter is greater than the amount of Omnicoin in the account when the fee (0.1 OMC) is included</td>
+						</tr>
+						<tr>
+							<td>SEND_ERROR</td>
+							<td>An error occurred creating the transaction</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_send&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e&address=oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa&amount=1</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": {
+		"address": "oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa",
+		"amount": 1
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+				<div class="panel panel-default" id="wallet_send-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-13" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_importkey
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-13" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_importkey method imports a private key into an online wallet. A valid username and session are required. No parameters are returned.
+				</p>
+				<p>
+					<b>Note:</b> This API call is currently disabled.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>A valid online wallet username</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>A valid session for the <code>username</code></td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>privkey <span class="label label-info">String</span></td>
+							<td>A valid Omnicoin private key</td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
+						</tr>
+						<tr>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>session</code> are invalid</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_importkey&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e&address=oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa&privkey=5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": {
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
 	</div>
 	<?php
 	get_footer();
