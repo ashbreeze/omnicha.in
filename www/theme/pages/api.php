@@ -16,7 +16,7 @@ require_once('/var/www/omnicha.in/theme/recaptchalib.php');
 
 if (isset($_GET['method']) && is_string($_GET['method'])) {
 	$error = true;
-	$error_message = "Unknown error";
+	$error_message = "UNKNWN_ERROR";
 	$response = array();
 	if ($_GET['method'] == "getcharts") {
 		$zoom = "3600";
@@ -55,39 +55,35 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		
 		$rich_list = mysqli_query($database, "SELECT b.label, a.address, a.balance, a.rank, a.percent FROM richlist AS a left JOIN claimed_addresses AS b ON (b.address = a.address) ORDER BY a.id LIMIT 0, 25");
 		while ($richie = mysqli_fetch_array($rich_list)) {
-			$response['richlist'][] = array("rank" => $richie['rank'], "address" => $richie['address'], "vanity_name" => $richie['label'] == null ? "" : $richie['label'], "balance" => doubleval($richie['balance']), "usd_value" => doubleval(omc2usd($omc_usd_price, $richie['balance'], 2)), "percent" => doubleval($richie['percent']));
+			$response['richlist'][] = array("rank" => intval($richie['rank']), "address" => $richie['address'], "vanity_name" => $richie['label'] == null ? "" : $richie['label'], "balance" => doubleval($richie['balance']), "usd_value" => doubleval(omc2usd($omc_usd_price, $richie['balance'], 2)), "percent" => doubleval($richie['percent']));
 		}	
 	} else if ($_GET['method'] == "wallet_register") {
-		if (isset($_GET['username']) && isset($_GET['password']) && isset($_GET['passwordConfirm']) && isset($_GET['recapChallenge']) && isset($_GET['recapResp'])) {
-			if (is_string($_GET['username']) && is_string($_GET['password']) && is_string($_GET['passwordConfirm']) && is_string($_GET['recapChallenge']) && is_string($_GET['recapResp'])) {
-				if (!recaptcha_check_answer($recaptcha_private, $_SERVER["REMOTE_ADDR"], $_GET['recapChallenge'], $_GET['recapResp'])->is_valid) {
-					$error_message = "INVALID_CAPTCHA";
-				} else {
-					$username = $_GET['username'];
-					$password = $_GET['password'];
-					$passwordConfirm = $_GET['passwordConfirm'];
+		if (isset($_GET['username']) && isset($_GET['password']) && isset($_GET['passwordConfirm'])) {
+			if (is_string($_GET['username']) && is_string($_GET['password']) && is_string($_GET['passwordConfirm'])) {
+				$username = $_GET['username'];
+				$password = $_GET['password'];
+				$passwordConfirm = $_GET['passwordConfirm'];
+			
+				$usernameSafe = preg_replace('/[^A-Za-z0-9!@#$%^&*=_+?.-]/', '', $username);
+				$passwordSafe = preg_replace('/[^A-Za-z0-9]/', '', $password);
+				$passwordConfirmSafe = preg_replace('/[^A-Za-z0-9]/', '', $passwordConfirm);
 				
-					$usernameSafe = preg_replace('/[^A-Za-z0-9!@#$%^&*=_+?.-]/', '', $username);
-					$passwordSafe = preg_replace('/[^A-Za-z0-9]/', '', $password);
-					$passwordConfirmSafe = preg_replace('/[^A-Za-z0-9]/', '', $passwordConfirm);
+				if ($username == "" || $password == "" || $passwordConfirm == "") {
+					$error_message = "EMPTY_REQUIRED_FIELDS";
+				} else if ($username != $usernameSafe || strlen($usernameSafe) < 3 || strlen($usernameSafe) > 30) {
+					$error_message = "INVALID_USERNAME";
+				} else if (mysqli_query($database, "SELECT id FROM users WHERE username = '" . $usernameSafe . "'")->num_rows != 0) {
+					$error_message = "USERNAME_TAKEN";
+				} else if ($password != $passwordSafe || $passwordConfirm != $passwordConfirmSafe) {
+					$error_message = "INVALID_PASSWORD";
+				} else if ($passwordSafe != $passwordConfirmSafe) {
+					$error_message = "NONMATCHING_PASSWORDS";
+				} else {
+					$salt = hash('sha512', uniqid(mt_rand(1, mt_getrandmax()), true));
+					$passwordSalted = hash('sha512', $passwordSafe . $salt);
 					
-					if ($username == "" || $password == "" || $passwordConfirm == "") {
-						$error_message = "EMPTY_REQUIRED_FIELDS";
-					} else if ($username != $usernameSafe || strlen($usernameSafe) < 3 || strlen($usernameSafe) > 30) {
-						$error_message = "INVALID_USERNAME";
-					} else if (mysqli_query($database, "SELECT id FROM users WHERE username = '" . $usernameSafe . "'")->num_rows != 0) {
-						$error_message = "USERNAME_TAKEN";
-					} else if ($password != $passwordSafe || $passwordConfirm != $passwordConfirmSafe) {
-						$error_message = "INVALID_PASSWORD";
-					} else if ($passwordSafe != $passwordConfirmSafe) {
-						$error_message = "NONMATCHING_PASSWORDS";
-					} else {
-						$salt = hash('sha512', uniqid(mt_rand(1, mt_getrandmax()), true));
-						$passwordSalted = hash('sha512', $passwordSafe . $salt);
-						
-						mysqli_query($database, "INSERT INTO users (username, password, salt) VALUES ('" . $usernameSafe . "', '" . $passwordSalted . "', '" . $salt . "')");
-						$error = false;
-					}
+					mysqli_query($database, "INSERT INTO users (username, password, salt) VALUES ('" . $usernameSafe . "', '" . $passwordSalted . "', '" . $salt . "')");
+					$error = false;
 				}
 			}
 		}
@@ -121,22 +117,8 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				while ($tx = mysqli_fetch_array($address_txs)) {
 					if (abs($tx['value']) >= 1000000) {
 						$response['balance'] += $tx['value'];
-						/*
-						if ($tx['value'] > 0) {
-							$response['total_in'] += $tx['value'];
-						} else {
-							$response['total_out'] -= $tx['value'];
-						}
-						*/
 						if (!isset($txs[$tx['tx_hash']])) {
 							$txs[$tx['tx_hash']] = array("date" => date("y-m-d H:i:s", $tx['block_nTime']), "confirmations" => $lastblock - $tx['block_height'] + 1, "tx_hash" => $tx['tx_hash'], "value" => $tx['value'], "balance" => 0);
-							/*
-							if ($tx['value'] > 0) {
-								$response['tx_in']++;
-							} else {
-								$response['tx_out']++;
-							}
-							*/
 						} else {
 							$txs[$tx['tx_hash']]['value'] += $tx['value'];
 						}
@@ -196,56 +178,6 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			$response['pending_balance'] = $input_pending_total - $input_total;
 			$response['omc_usd_price'] = doubleval(omc2usd($omc_usd_price, 1));
 			$error = false;
-			/*
-			$response['tx_out'] = 0;
-			$response['total_out'] = 0;
-			$response['tx_in'] = 0;
-			$response['total_in'] = 0;
-			$response['balance'] = 0;
-			$response['pending_balance'] = 0;
-			$response['transactions'] = array();
-			
-			$txs = array();
-			$transactions = $wallet->listtransactions($login[1]['username'], 9999);
-			foreach($transactions as $tx) {
-				$txs[] = $tx;
-				if ($tx['category'] == "move") {
-					continue;
-				}
-				if ($tx['category'] == "send") {
-					if ($tx['confirmations']) {
-						$response['tx_out'] ++;
-						$response['total_out'] += -$tx['amount'] - $tx['fee'];
-					}
-				} else {
-					if ($tx['confirmations'] >= 1) {
-						$response['tx_in'] ++;
-						$response['total_in'] += $tx['amount'];
-					}
-				}
-			}
-			
-			$response['balance'] = $wallet->getbalance($login[1]['username'], 1);
-			$response['pending_balance'] = $wallet->getbalance($login[1]['username'], 0) - $wallet->getbalance($login[1]['username'], 1);
-
-			$balance = $wallet->getbalance($login[1]['username'], 0);
-			$txs = array_reverse($txs);
-			foreach ($txs as $tx) {
-				if ($tx['category'] == "move") {
-					continue;
-				}
-				$txinfo = $tx['txid'];
-				$confs = $tx['confirmations'];
-
-					
-				$transaction = array("type" => $tx['category'], "txinfo" => $txinfo, "date" => date("y-m-d h:m:s", ($tx['category'] == "move" ? $tx['time'] : $tx['timereceived'])), "confirmations" => $confs, "amount" => $tx['amount'], "balance" => $balance);
-
-				$balance -= $tx['amount'] + ($tx['category'] == "send" ? $tx['fee'] : 0);
-				$response['transactions'][] = $transaction;
-			}
-			$response['addresses'] = $wallet->getaddressesbyaccount($login[1]['username']);
-			$error = false;
-			*/
 		} else {
 			$error_message = $login[0];
 		}
@@ -374,32 +306,6 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 								$response['amount'] = $amount_safe;
 								$response['address'] = $address_safe;
 							}
-							
-							/*
-							$addresses = $wallet->getaddressesbyaccount($login[1]['username']);
-							$unspent = $wallet->listunspent(0);
-
-							$inputs = array();
-							foreach ($unspent as $input) {
-								if (!in_array($input['address'], $addresses)) {
-									$inputs[] = $input;
-								}
-							}
-
-							$wallet->settxfee(0.1);
-							$wallet->lockunspent(false, $inputs);
-
-							$send = $wallet->sendfrom($login[1]['username'], $address_safe, doubleval($amount_safe), 1);
-							if ($send) {
-								$error = false;
-								$response['amount'] = $amount_safe;
-								$response['address'] = $address_safe;
-							}
-
-	
-							
-							$wallet->lockunspent(true, $inputs);
-							*/
 						}
 					}
 				}
@@ -415,23 +321,21 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 
 				$privkey_safe = preg_replace('/[^A-Za-z0-9]/', '', $privkey);
 				
-				//$resp = $wallet->importprivkey($privkey_safe, $login[1]['username']);
-				//if ($resp) {
-				//	$error = false;
-				//}
+				/*
+				$resp = $wallet->importprivkey($privkey_safe, $login[1]['username']);
+				if ($resp) {
+					$error = false;
+				}
+				*/
 			}
 		} else {
 			$error_message = $login[0];
 		}
-	}
-	
-	
-	
-	else if ($_GET['method'] == "getbalance") {
+	} else if ($_GET['method'] == "getbalance") {
 		if (isset($_GET['address']) && is_string($_GET['address'])) {
 			$address_safe = $size = preg_replace('/[^A-Za-z0-9]/', '', $_GET['address']);
 			if (!$wallet->validateaddress($address_safe)['isvalid']) {
-				$error_message = "Invalid address";
+				$error_message = "INVALID_ADDRESS";
 			} else {
 				$error = false;
 				
@@ -445,7 +349,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				$response = array("balance" => format_satoshi(doubleval($balance)));
 			}
 		} else {
-			$error_message = "Address not specified";
+			$error_message = "ADDRESS_NOT_SPECIFIED";
 		}
 	} else if ($_GET['method'] == "checkaddress") {
 		if (isset($_GET['address']) && is_string($_GET['address'])) {
@@ -453,7 +357,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			$address_safe = $size = preg_replace('/[^A-Za-z0-9]/', '', $_GET['address']);
 			$response = array("isvalid" => $wallet->validateaddress($address_safe)['isvalid']);
 		} else {
-			$error_message = "Address not specified";
+			$error_message = "ADDRESS_NOT_SPECIFIED";
 		}
 	} else if ($_GET['method'] == "getinfo") {
 		$error = false;
@@ -495,16 +399,16 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 
 					$response = array("isvalid" => $wallet->verifymessage($address_safe, $signature_safe, $message_safe));
 				} else {
-					$error_message = "Signature not specified";
+					$error_message = "SIGNATURE_NOT_SPECIFIED";
 				}
 			} else {
-				$error_message = "Message not specified";
+				$error_message = "MESSAGE_NOT_SPEFICIED";
 			}
 		} else {
-			$error_message = "Address not specified";
+			$error_message = "ADDRESS_NOT_SPECIFIED";
 		}
 	} else {
-		$error_message = "Unknown API method";
+		$error_message = "UNKOWN_API_METHOD";
 	}
 	if ($error) {
 		echo json_encode(array("error" => $error, "error_info" => $error_message));
@@ -552,7 +456,6 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<td><a href="#getwstats-docs" onClick="$('#panel-7').collapse('show');">getwstats</a></td>
 				<td>Get total users and total balance of all online wallet accounts</td>
 			</tr>
-			<?php /* 
 			<tr>
 				<td><a href="#wallet_register-docs" onClick="$('#panel-8').collapse('show');">wallet_register</a></td>
 				<td>Registers for an online wallet</td>
@@ -577,7 +480,6 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<td><a href="#wallet_importkey-docs" onClick="$('#panel-13').collapse('show');">wallet_importkey</a></td>
 				<td>Imports a private key into an online wallet (Currently disabled)</td>
 			</tr>
-			*/ ?>
 		</table>
 		<div class="panel panel-default">
 			<div class="panel-heading">
@@ -585,11 +487,61 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			</div>
 			<div class="panel-body">
 				<p>
-					Every call uses the endpoint <code>https://www.omnicha.in/api/</code>. The API method and all arguments are appended as GET arguments. All responses from the server will be in JSON format.
+					Every call uses the endpoint <code>https://omnicha.in/api/</code>. The API method and all arguments are appended as GET arguments. All responses from the server will be in JSON format.
 				</p>
 				<p>
 					The API will return an array with 2 elements, <code>error</code> and <code>error_info</code> or <code>response</code>. If any error occurred <code>error</code> will equal <code>TRUE</code> and <code>error_info</code> will be populated with the error info. If no error occurred, <code>error</code> will be <code>FALSE</code> and <code>response</code> will contain any returned information from the API call.
 				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>method <span class="label label-info">String</span></td>
+							<td>The requested API method</td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>error <span class="label label-info">Boolean</span></td>
+							<td>Whether any error occurred</td>
+						</tr>
+						<tr>
+							<td>error_info <span class="label label-info">Boolean</span></td>
+							<td>If an error occurred, this will contain the specific error that occurred</td>
+						</tr>
+						<tr>
+							<td>response <span class="label label-info">Array()</span></td>
+							<td>If no error occurred, this will contain the response from the API</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>UNKOWN_API_METHOD</td>
+							<td>The requested API method was not found</td>
+						</tr>
+						<tr>
+							<td>UNKNOWN_ERROR</td>
+							<td>An unknown error occurred</td>
+						</tr>
+					</table>
+				</div>
 				<br />
 				<p>
 					Example API call to <code>https://omnicha.in/api/?method=testcall</code> with error:
@@ -709,7 +661,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Required</th>
 						</tr>
 						<tr>
-							<td>Address <span class="label label-info">String</span></td>
+							<td>address <span class="label label-info">String</span></td>
 							<td>The Omnicoin address</td>
 							<td>Yes</td>
 						</tr>
@@ -734,12 +686,12 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Description</th>
 						</tr>
 						<tr>
-							<td>Invalid address</td>
-							<td>The Omnicoin address specified is invalid</td>
+							<td>INVALID_ADDRESS</td>
+							<td><code>address</code> is an invalid Omnicoin address</td>
 						</tr>
 						<tr>
-							<td>Address not specified</td>
-							<td>No address parameter was passed to the API</td>
+							<td>ADDRESS_NOT_SPECIFIED</td>
+							<td><code>address</code> was not passed to the API</td>
 						</tr>
 					</table>
 				</div>
@@ -773,7 +725,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Required</th>
 						</tr>
 						<tr>
-							<td>Address <span class="label label-info">String</span></td>
+							<td>address <span class="label label-info">String</span></td>
 							<td>The Omnicoin address</td>
 							<td>Yes</td>
 						</tr>
@@ -787,7 +739,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 						</tr>
 						<tr>
 							<td>isvalid <span class="label label-info">Boolean</span></td>
-							<td>If the specified address is valid</td>
+							<td>If <code>address</code> is valid</td>
 						</tr>
 					</table>
 				</div>
@@ -798,12 +750,8 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Description</th>
 						</tr>
 						<tr>
-							<td>Invalid address</td>
-							<td>The Omnicoin address specified is invalid</td>
-						</tr>
-						<tr>
-							<td>Address not specified</td>
-							<td>No address parameter was passed to the API</td>
+							<td>ADDRESS_NOT_SPECIFIED</td>
+							<td><code>address</code> was not passed to the API</td>
 						</tr>
 					</table>
 				</div>
@@ -837,18 +785,18 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Required</th>
 						</tr>
 						<tr>
-							<td>Address <span class="label label-info">String</span></td>
+							<td>address <span class="label label-info">String</span></td>
 							<td>The Omnicoin address</td>
 							<td>Yes</td>
 						</tr>
 						<tr>
-							<td>Message <span class="label label-info">String</span></td>
+							<td>message <span class="label label-info">String</span></td>
 							<td>The message that was signed</td>
 							<td>Yes</td>
 						</tr>
 						<tr>
-							<td>Signature <span class="label label-info">String</span></td>
-							<td>The signature generated from signing the message</td>
+							<td>signature <span class="label label-info">String</span></td>
+							<td>The signature generated from signing <code>mesage</code> with <code>address</code></td>
 							<td>Yes</td>
 						</tr>
 					</table>
@@ -861,7 +809,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 						</tr>
 						<tr>
 							<td>isvalid <span class="label label-info">Boolean</span></td>
-							<td>If the specified signature is valid</td>
+							<td>If <code>signature</code> is valid</td>
 						</tr>
 					</table>
 				</div>
@@ -872,16 +820,16 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Description</th>
 						</tr>
 						<tr>
-							<td>Address not specified</td>
-							<td>No address parameter was passed to the API</td>
+							<td>ADDRESS_NOT_SPECIFIED</td>
+							<td><code>address</code> was not passed to the API</td>
 						</tr>
 						<tr>
-							<td>Message not specified</td>
-							<td>No message parameter was passed to the API</td>
+							<td>MESSAGE_NOT_SPECIFIED</td>
+							<td><code>message</code> was not passed to the API</td>
 						</tr>
 						<tr>
-							<td>Signature not specified</td>
-							<td>No signature parameter was passed to the API</td>
+							<td>SIGNATURE_NOT_SPECIFIED</td>
+							<td><code>signature</code> was not passed to the API</td>
 						</tr>
 					</table>
 				</div>
@@ -916,7 +864,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Required</th>
 						</tr>
 						<tr>
-							<td>Zoom <span class="label label-info">Integer</span></td>
+							<td>zoom <span class="label label-info">Integer</span></td>
 							<td>Seconds between data entries</td>
 							<td>900, 1800, 3600, 21600, 43200, 86400</td>
 							<td>No (defaults 3600)</td>
@@ -1020,15 +968,6 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<div class="panel panel-default">
 					<table class="table table-striped">
 						<tr>
-							<th>Argument</th>
-							<th>Description</th>
-							<th>Required</th>
-						</tr>
-					</table>
-				</div>
-				<div class="panel panel-default">
-					<table class="table table-striped">
-						<tr>
 							<th>Return Variable</th>
 							<th>Description</th>
 						</tr>
@@ -1074,12 +1013,19 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		"last_update": "14-11-17 21:03:49",
 		"richlist": [
 			{
-				"rank": "1", 
+				"rank": 1, 
 				"address": "oK6tf99VfiqovtG8YSWBMSBZZ7Ei6poyLe",
 				"vanity_name": "Omni's Phat Wallet",
 				"balance": 2700715.849678,
 				"usd_value": 3797.6,
 				"percent": 37.971726543451
+			}, {
+				"rank": 2,
+				"address": "oQ2Z6DZBzWxkJKfW2exNb1XhCnRuc6LFBE",
+				"vanity_name": "",
+				"balance": 237757.2147062,
+				"usd_value": 326.32,
+				"percent": 3.3350627633622
 			}, ...
 		]
 	}
@@ -1126,6 +1072,147 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				</p>
 			</div>
 		</div>
+		<?php /*
+		<div class="panel panel-default" id="wallet_register-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-8" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_register
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-8" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_register method registers for an online wallet. No parameters are returned.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>The username to register. Must be between 3 and 30 characters.</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>The password to register with. Must by SHA512 encoded</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>passwordConfirm <span class="label label-info">String</span></td>
+							<td>The password to register with confirmation. Must by SHA512 encoded and equal <code>password</code></td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>EMPTY_REQUIRED_FIELDS</td>
+							<td><code>username</code>, <code>password</code>, or <code>passwordConfirm</code> is empty</td>
+						</tr>
+						<tr>
+							<td>INVALID_USERNAME</td>
+							<td><code>username</code> does not meet character length requirements or contains invalid characters</td>
+						</tr>
+						<tr>
+							<td>USERNAME_TAKEN</td>
+							<td><code>username</code> is taken</td>
+						</tr>
+						<tr>
+							<td>INVALID_PASSWORD</td>
+							<td><code>password</code> or <code>passwordConfirm</code> contain invalid characters</td>
+						</tr>
+						<tr>
+							<td>NONMATCHING_PASSWORDS</td>
+							<td><code>password</code> and <code>passwordConfirm</code> don't match</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_register&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff&passwordConfirm=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": []
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_login-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-9" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_login
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-9" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_login method logs into an online wallet and gets a session token. No parameters are returned.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>The username to register. Must be between 3 and 30 characters.</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>The password to register with. Must by SHA512 encoded</td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>EMPTY_REQUIRED_FIELDS</td>
+							<td><code>username</code>, <code>password</code>, or <code>passwordConfirm</code> is empty</td>
+						</tr>
+						<tr>
+							<td>INVALID_USERNAME</td>
+							<td><code>username</code> does not meet character length requirements or contains invalid characters</td>
+						</tr>
+						<tr>
+							<td>USERNAME_TAKEN</td>
+							<td><code>username</code> is taken</td>
+						</tr>
+						<tr>
+							<td>INVALID_PASSWORD</td>
+							<td><code>password</code> or <code>passwordConfirm</code> contain invalid characters</td>
+						</tr>
+						<tr>
+							<td>NONMATCHING_PASSWORDS</td>
+							<td><code>password</code> and <code>passwordConfirm</code> don't match</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_register&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff&passwordConfirm=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff</code>
+					<pre><code class="language-json">{
+	"error": false,
+	"response": []
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		*/ ?>
 	</div>
 	<?php
 	get_footer();
