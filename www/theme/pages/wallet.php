@@ -41,7 +41,6 @@ get_header($pages, $currentpage, "Wallet", "Wallet", false);
 	</div>
 </div>
 <div class="container">
-	<!--<div class="alert alert-warning">If you haven't noticed, this wallet is in early beta. Use it at your own risk</div>-->
 	<form class="well form" id="login-form" style="margin:0 auto; max-width:358px;" onKeyPress="if (event.keyCode == 13) { login(); }">
 		<h2>Login</h2>
 		<div class="form-group" id="login-username-group">
@@ -63,20 +62,6 @@ get_header($pages, $currentpage, "Wallet", "Wallet", false);
 		</div>
 		<div class="form-group" id="register-password-confirm-group">
 			<input type="password" id="register-password-confirm" class="form-control tip-right" placeholder="Confirm Password" title="Retype your password for safety." required>
-		</div>
-		<div class="form-group" id="register-recaptcha">
-			<div id="recaptcha_widget" class="recaptcha_widget">
-				<div id="recaptcha_image"></div>
-				<div class="recaptcha_only_if_incorrect_sol" style="color:red">Incorrect. Please try again.</div>
-
-				<div class="recaptcha_input">
-					<label class="recaptcha_only_if_image" for="recaptcha_response_field">Enter the words above:</label>
-					<a href="javascript:Recaptcha.reload()" style="color:black;" class="pull-right">
-						<span class="glyphicon glyphicon-refresh"></span>
-					</a>
-					<input type="text" id="recaptcha_response_field" name="recaptcha_response_field">
-				</div>
-			</div>
 		</div>
 		<div class="form-group">
 			<a href="https://omnicha.in/wallet/tos" target="_blank">By registering you agree to our Terms of Service</a>
@@ -193,27 +178,6 @@ get_header($pages, $currentpage, "Wallet", "Wallet", false);
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 					<button type="button" class="btn btn-primary" onClick="importkey();">Import</button>
-				</div>
-			</div>
-		</div>
-	</div>
-	
-	<div class="modal fade" id="warning-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h4 class="modal-title" id="myModalLabel">Warning</h4>
-				</div>
-				<div class="modal-body" id="import-key-body">
-					1. Although this wallet was created by a developer of OmniCoin, this wallet is <b>NOT</b> an official product of the OmniCoin Dev Team and is in no way endorsed by OmniCoin or the OmniCoin Dev Team.
-					<br><br>
-					2. This wallet is a <i>very</i> early beta version. We recommend that you do <b>NOT</b> use this wallet as your main wallet, but instead use it for testing until it has been proven safe.
-					<br><br><br><br>
-					Do you understand and still wish to use this wallet?
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-default" onClick="document.location='/'">No, get me away.</button>
-					<button type="button" class="btn btn-primary" data-dismiss="modal">Yes, I understand</button>
 				</div>
 			</div>
 		</div>
