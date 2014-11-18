@@ -27,20 +27,10 @@ if ($tabtitle == null) {
 			<title><?php echo $tabtitle; ?> - OmniCha.in</title>
 			
 			<link href="/theme/css/style.css" rel="stylesheet">
-			<?php
-			if (isset($_COOKIE['theme']) && $_COOKIE['theme'] == "black") {
-				?>
-				<link href="/theme/css/bootstrap.min.css" rel="stylesheet">
-				<?php
-			} else {
-				?>
-				<link href="/theme/css/theme.css" rel="stylesheet">
-				<?php
-			}
-			?>
+
+			<link href="/theme/css/bootstrap.min.css" rel="stylesheet">
 			<link href="/theme/css/override.css" rel="stylesheet">
 			<link href="/theme/css/prism.css" rel="stylesheet">
-			<link href="/theme/css/bootstrap-switch.css" rel="stylesheet">
 	
 			<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 			<link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -49,7 +39,6 @@ if ($tabtitle == null) {
 			<script src="/theme/js/bootstrap.min.js"></script>
 			<script src="/theme/js/script.js"></script>
 			<script src="/theme/js/prism.js"></script>
-			<script src="/theme/js/bootstrap-switch.min.js"></script>
 			<?php if ($currentpage['id'] == 4) { ?>
 				<script src="/theme/js/highcharts.js"></script>
 				<script src="/theme/js/highcharts-exporting.js"></script>
@@ -75,7 +64,7 @@ if ($tabtitle == null) {
 			</script>
 		</head>
 		<body>
-			<div class="navbar <?php echo (isset($_COOKIE['theme']) && $_COOKIE['theme'] == "black") ? "navbar-inverse" : "navbar-default"; ?> navbar-top">
+			<div class="navbar navbar-inverse navbar-top">
 				<div class="container">
 					<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
 						<span class="sr-only">Toggle navigation</span>

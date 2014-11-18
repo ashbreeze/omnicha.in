@@ -14,6 +14,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>. */
 get_header($pages, $currentpage, "Charts");
 ?>
 <div class="container">
+	<div class="alert alert-info">
+		Currently working on a new charts system. Data is a little inaccurate.
+	</div>
 	<div class="row">
 		<div style="margin-bottom:50px;" id="difficulty"></div>
 		<div style="margin-bottom:50px;" id="price"></div>
@@ -36,26 +39,39 @@ get_header($pages, $currentpage, "Charts");
 			contentType: "application/json"
 		}).done(function(data) {
 			var jsonResponse = jQuery.parseJSON(data);
-			var difficulty = jsonResponse.response.difficulty;
-			var btc_price = jsonResponse.response.btc_price;
-			var usd_price = jsonResponse.response.usd_price;
-			var volume = jsonResponse.response.volume;
-			var transactions = jsonResponse.response.transactions;
-			var transaction_volume = jsonResponse.response.transaction_volume;
-			var block_time = jsonResponse.response.block_time;
-			var hashrate = jsonResponse.response.hashrate;
-			var coins_mined = jsonResponse.response.coins_mined;
-			var lifetime_coins_mined = jsonResponse.response.lifetime_coins_mined;
-			var lifetime_transactions = jsonResponse.response.lifetime_transactions;
-			var lifetime_transactions_volume = jsonResponse.response.lifetime_transactions_volume;
-
-			$('#difficulty').highcharts({
+			/*
+			function afterSetExtremes(e) {
+				var chart = $('#difficulty').highcharts();
+				var zoom = e.rangeSelectorButton.text
+				
+				chart.showLoading('Loading data from server...');
+				$.ajax({
+					url: "/api?method=getcharts&zoom=" + zoom,
+					type: "GET",
+					contentType: "application/json"
+				}).done(function(data) {
+					var jsonResponse = jQuery.parseJSON(data);
+					chart.series[0].setData(jsonResponse.response.difficulty);
+					//chart.series[0].update({pointInterval: 1000 * jsonResponse.response.zoom});
+					chart.hideLoading();
+				});
+			}
+			*/
+			$('#difficulty').highcharts('StockChart', {
 				title: {
 					text: 'Average Mining Difficulty Per Day',
 					x: -20
 				},
 				xAxis: {
-					type: 'datetime'
+					type: 'datetime',
+					minRange: 1000 * 60 * 15/*,
+					events: {
+						afterSetExtremes: function(e) {
+							if (typeof(e.rangeSelectorButton) !== 'undefined') {
+								afterSetExtremes(e);
+							}
+						}
+					}*/
 				},
 				yAxis: {
 					title: {
@@ -65,9 +81,9 @@ get_header($pages, $currentpage, "Charts");
 				},
 				series: [{
 					name: 'Difficulty',
-					data: difficulty,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.difficulty,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					color: '#dd4814'
 				}],
 				credits: {
@@ -79,11 +95,41 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: '',
+						count: 0,
+						text: '15m'
+					},{
+						type: '',
+						count: 0,
+						text: '30m'
+					},{
+						type: '',
+						count: 0,
+						text: '1h'
+					},{
+						type: '',
+						count: 0,
+						text: '6h'
+					},{
+						type: '',
+						count: 0,
+						text: '12h'
+					},{
+						type: '',
+						count: 0,
+						text: '1d'
+					}],
+					selected: 5
 				}
 			});
-			$('#price').highcharts({
+			/*
+			$('#price').highcharts('StockChart', {
 				title: {
-					text: 'Average Exchange Price Per Day',
+					text: 'Exchange Price',
 					x: -20
 				},
 				subtitle: {
@@ -113,16 +159,16 @@ get_header($pages, $currentpage, "Charts");
 				}],
 				series: [{
 					name: 'BTC Exchange Price',
-					data: btc_price,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.btc_price,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					yAxis: 0,
 					color: '#dd4814'
 				},{
 					name: 'USD Exchange Price',
-					data: usd_price,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.usd_price,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					yAxis: 1
 				}],
 				tooltip: {
@@ -137,11 +183,39 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
 				}
 			});
-			$('#volume').highcharts({
+			$('#volume').highcharts('StockChart', {
 				title: {
-					text: 'Exchange Volume Per Day',
+					text: 'Exchange Volume',
 					x: -20
 				},
 				subtitle: {
@@ -159,9 +233,9 @@ get_header($pages, $currentpage, "Charts");
 				},
 				series: [{
 					name: 'Volume',
-					data: volume,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.volume,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					color: '#dd4814'
 				}],
 				tooltip: {
@@ -176,11 +250,40 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
 				}
 			});
-			$('#transactions').highcharts({
+			*/
+			$('#transactions').highcharts('StockChart', {
 				title: {
-					text: 'Transactions Per Day',
+					text: 'Transactions',
 					x: -20
 				},
 				xAxis: {
@@ -194,9 +297,9 @@ get_header($pages, $currentpage, "Charts");
 				},
 				series: [{
 					name: 'Transactions',
-					data: transactions,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.transactions,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					color: '#dd4814'
 				}],
 				credits: {
@@ -208,11 +311,39 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
 				}
 			});
-			$('#transaction-volume').highcharts({
+			$('#transaction-volume').highcharts('StockChart', {
 				title: {
-					text: 'Transaction Volume Per Day',
+					text: 'Transaction Volume',
 					x: -20
 				},
 				xAxis: {
@@ -226,9 +357,9 @@ get_header($pages, $currentpage, "Charts");
 				},
 				series: [{
 					name: 'Volume',
-					data: transaction_volume,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.transaction_volume,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					color: '#dd4814'
 				}],
 				tooltip: {
@@ -243,11 +374,39 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
 				}
 			});
-			$('#block-time').highcharts({
+			$('#block-time').highcharts('StockChart', {
 				title: {
-					text: 'Average Block Time Per Day',
+					text: 'Block Time',
 					x: -20
 				},
 				xAxis: {
@@ -266,9 +425,9 @@ get_header($pages, $currentpage, "Charts");
 				},
 				series: [{
 					name: 'Block Time',
-					data: block_time,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.block_time,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					color: '#dd4814'
 				}],
 				tooltip: {
@@ -283,11 +442,39 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
 				}
 			});
-			$('#hashrate').highcharts({
+			$('#hashrate').highcharts('StockChart', {
 				title: {
-					text: 'Average Hashrate Per Day',
+					text: 'Hashrate',
 					x: -20
 				},
 				xAxis: {
@@ -301,9 +488,9 @@ get_header($pages, $currentpage, "Charts");
 				},
 				series: [{
 					name: 'Hashrate',
-					data: hashrate,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.hashrate,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					color: '#dd4814'
 				}],
 				tooltip: {
@@ -318,11 +505,39 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
 				}
 			});
-			$('#coins-mined').highcharts({
+			$('#coins-mined').highcharts('StockChart', {
 				title: {
-					text: 'Coins Mined Per Day',
+					text: 'Coins Mined',
 					x: -20
 				},
 				xAxis: {
@@ -336,9 +551,9 @@ get_header($pages, $currentpage, "Charts");
 				},
 				series: [{
 					name: 'Coins Mined',
-					data: coins_mined,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.coins_mined,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					color: '#dd4814'
 				}],
 				tooltip: {
@@ -353,9 +568,37 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
 				}
 			});
-			$('#lifetime-coins-mined').highcharts({
+			$('#lifetime-coins-mined').highcharts('StockChart', {
 				title: {
 					text: 'Total Coins Mined',
 					x: -20
@@ -371,9 +614,9 @@ get_header($pages, $currentpage, "Charts");
 				},
 				series: [{
 					name: 'Coins Mined',
-					data: lifetime_coins_mined,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.lifetime_coins_mined,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					color: '#dd4814'
 				}],
 				tooltip: {
@@ -388,9 +631,37 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
 				}
 			});
-			$('#lifetime-transactions').highcharts({
+			$('#lifetime-transactions').highcharts('StockChart', {
 				title: {
 					text: 'Total Transactions',
 					x: -20
@@ -406,9 +677,9 @@ get_header($pages, $currentpage, "Charts");
 				},
 				series: [{
 					name: 'Transactions',
-					data: lifetime_transactions,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.lifetime_transactions,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					color: '#dd4814'
 				}],
 				credits: {
@@ -420,9 +691,37 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
 				}
 			});
-			$('#lifetime-transactions-volume').highcharts({
+			$('#lifetime-transactions-volume').highcharts('StockChart', {
 				title: {
 					text: 'Total Transaction Volume',
 					x: -20
@@ -438,9 +737,9 @@ get_header($pages, $currentpage, "Charts");
 				},
 				series: [{
 					name: 'Volume',
-					data: lifetime_transactions_volume,
-					pointStart: Date.UTC(2014, 3, 4),
-					pointInterval: 24 * 3600 * 1000,
+					data: jsonResponse.response.lifetime_transactions_volume,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
 					color: '#dd4814'
 				}],
 				tooltip: {
@@ -455,6 +754,34 @@ get_header($pages, $currentpage, "Charts");
 							enabled: false
 						}
 					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
 				}
 			});
 		});
