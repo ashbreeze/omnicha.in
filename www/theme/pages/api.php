@@ -12,10 +12,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
 require_once('/var/www/omnicha.in/theme/safe/wallet.php');
-require_once('/var/www/omnicha.in/theme/functions.php');
 require_once('/var/www/omnicha.in/theme/recaptchalib.php');
-$publicKey = "6LfrmfYSAAAAAH7wVXhIZ9ORnz1gFqD3Dl7wjjpc";
-$privateKey = "6LfrmfYSAAAAABJq6Bb2rrgwdkzoAKVj3MwxebdO";
 
 if (isset($_GET['method']) && is_string($_GET['method'])) {
 	$error = true;
@@ -63,7 +60,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 	} else if ($_GET['method'] == "wallet_register") {
 		if (isset($_GET['username']) && isset($_GET['password']) && isset($_GET['passwordConfirm']) && isset($_GET['recapChallenge']) && isset($_GET['recapResp'])) {
 			if (is_string($_GET['username']) && is_string($_GET['password']) && is_string($_GET['passwordConfirm']) && is_string($_GET['recapChallenge']) && is_string($_GET['recapResp'])) {
-				if (!recaptcha_check_answer($privateKey, $_SERVER["REMOTE_ADDR"], $_GET['recapChallenge'], $_GET['recapResp'])->is_valid) {
+				if (!recaptcha_check_answer($recaptcha_private, $_SERVER["REMOTE_ADDR"], $_GET['recapChallenge'], $_GET['recapResp'])->is_valid) {
 					$error_message = "INVALID_CAPTCHA";
 				} else {
 					$username = $_GET['username'];
