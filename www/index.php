@@ -16,15 +16,14 @@ require_once('/var/www/omnicha.in/theme/header.php');
 require_once('/var/www/omnicha.in/theme/footer.php');
 
 $pages = array();
-//				id				url 														navtitle							navbar 				filepath 
-$pages[] = array("id" => 0, 	"url" => array(array(""), array("chain", "omnicoin")),		"navtitle" => "Block Explorer", 	"navbar" => true,	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/home.php");
-$pages[] = array("id" => 1, 	"url" => array(array("stats")), 							"navtitle" => "Stats",				"navbar" => true,	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/stats.php");
-$pages[] = array("id" => 2, 	"url" => array(array("wallet")), 							"navtitle" => "Wallet",				"navbar" => true,	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/wallet.php");
-$pages[] = array("id" => 3, 	"url" => array(array("wallet", "tos")), 					"navtitle" => "Wallet TOS",			"navbar" => false,	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/wallet_tos.php");
-$pages[] = array("id" => 4, 	"url" => array(array("charts")), 							"navtitle" => "Charts",				"navbar" => true,	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/charts.php");
-$pages[] = array("id" => 5, 	"url" => array(array("richlist")), 							"navtitle" => "Rich List",			"navbar" => true,	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/richlist.php");
-$pages[] = array("id" => 6, 	"url" => array(array("api")), 								"navtitle" => "API",				"navbar" => true,	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/api.php");
-$pages[] = array("id" => 7, 	"url" => array(array("claimaddress")), 						"navtitle" => "Claim Address",		"navbar" => true,	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/claimaddress.php");
+$pages[] = array("id" => 0, 	"url" => array(array(""), array("chain", "omnicoin")),		"navtitle" => "Block Explorer", 	"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/home.php");
+$pages[] = array("id" => 1, 	"url" => array(array("stats")), 							"navtitle" => "Stats",				"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/stats.php");
+$pages[] = array("id" => 2, 	"url" => array(array("wallet")), 							"navtitle" => "Wallet",				"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/wallet.php");
+$pages[] = array("id" => 3, 	"url" => array(array("wallet", "tos")), 					"navtitle" => "Wallet TOS",			"navbar" => false,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/wallet_tos.php");
+$pages[] = array("id" => 4, 	"url" => array(array("charts")), 							"navtitle" => "Charts",				"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/charts.php");
+$pages[] = array("id" => 5, 	"url" => array(array("richlist")), 							"navtitle" => "Rich List",			"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/richlist.php");
+$pages[] = array("id" => 6, 	"url" => array(array("api")), 								"navtitle" => "API",				"navbar" => true,	"force_ssl" => false, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/api.php");
+$pages[] = array("id" => 7, 	"url" => array(array("claimaddress")), 						"navtitle" => "Claim Address",		"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/pages/claimaddress.php");
 
 
 $url = array();
@@ -55,6 +54,13 @@ foreach ($pages as &$page) {
 				continue;
 			} else {
 				break 2;
+			}
+		}
+		if ($page['force_ssl']) {
+			if ($_SERVER['HTTPS'] != "on") {
+				$url = "https://". $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
+				header("Location: $url");
+				exit;
 			}
 		}
 		$currentpage = $page;
