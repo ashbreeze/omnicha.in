@@ -24,7 +24,7 @@ $(document).ready(function() {
 	$(".tip-right").tooltip({
 		placement : 'right'
 	});
-	Recaptcha.create("6LfrmfYSAAAAAH7wVXhIZ9ORnz1gFqD3Dl7wjjpc",
+	Recaptcha.create("6LdW6f0SAAAAAHufm-Duc9DQrmxoSPuk6FZqpqlM",
 		"register-recaptcha",
 		{
 		  theme: "custom",
