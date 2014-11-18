@@ -20,18 +20,9 @@ var cron3;
 var idle = 0;
 
 $(document).ready(function() {
-	//$('#warning-modal').modal('show');
 	$(".tip-right").tooltip({
 		placement : 'right'
 	});
-	Recaptcha.create("6LdW6f0SAAAAAHufm-Duc9DQrmxoSPuk6FZqpqlM",
-		"register-recaptcha",
-		{
-		  theme: "custom",
-		  callback: Recaptcha.focus_response_field,
-		  custom_theme_widget: 'recaptcha_widget'
-		}
-	);
 	$("#send-amount").keyup(function() {
 		$("#send-amount-usd").val($("#send-amount").val() == "" ? "" : (omc2usd(omcPrice, $("#send-amount").val(), 1000000)));
 	});
@@ -84,7 +75,7 @@ function register() {
 	$("#register-password-group").removeClass("has-error");
 	$("#register-password-confirm-group").removeClass("has-error");
 	$(".register-alert").remove();
-	var json = {"method": "wallet_register", "username": $("#register-username").val(), "password": hex_sha512($("#register-password").val()), "passwordConfirm": hex_sha512($("#register-password-confirm").val()), "recapChallenge": Recaptcha.get_challenge(), "recapResp": Recaptcha.get_response()};
+	var json = {"method": "wallet_register", "username": $("#register-username").val(), "password": hex_sha512($("#register-password").val()), "passwordConfirm": hex_sha512($("#register-password-confirm").val())};
 	$.ajax({
 		url: "/api",
 		type: "GET",
@@ -96,10 +87,7 @@ function register() {
 		$(".register-alert").remove();
 		var jsonResponse = jQuery.parseJSON(data);
 		if (jsonResponse.error) {
-			Recaptcha.reload();
-			if (jsonResponse.error_info == "INVALID_CAPTCHA") {
-				$("#register-form").prepend("<div class='alert alert-danger register-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Invalid Captcha</div>")
-			} else if (jsonResponse.error_info == "EMPTY_REQUIRED_FIELDS") {
+			if (jsonResponse.error_info == "EMPTY_REQUIRED_FIELDS") {
 				$("#register-username-group").addClass("has-error");
 				$("#register-password-group").addClass("has-error");
 				$("#register-password-confirm-group").addClass("has-error");
