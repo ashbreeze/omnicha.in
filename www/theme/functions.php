@@ -16,9 +16,6 @@ $omc_btc_price = get_option($database, "omc_btc_price");
 $btc_usd_price = get_option($database, "btc_usd_price");
 $omc_usd_price = $omc_btc_price * $btc_usd_price;
 
-file_get_contents("http://omnicha.in:6666/chain/OmniCoin");
-
-
 function format_num($val, $precision = 10) {
 	$to_return = rtrim(rtrim(number_format(round($val, $precision), $precision), "0"), ".");
 	return $to_return == "" ? "0" : $to_return;
