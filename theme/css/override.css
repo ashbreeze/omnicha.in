@@ -1,0 +1,43 @@
+html {
+	position: relative;
+	min-height: 100%;
+}
+
+body {
+	margin-bottom: 40px;
+}
+
+h1, .h1, h2, .h2, h3, .h3 {
+    margin-top: 0;
+}
+
+.page-header h2 {
+	font-weight: bold;
+}
+
+.page-header {
+	background: #F7F7F7;
+	margin: 0;
+	padding: 10px 0 0 0;
+	margin: 0 0 25px 0;
+}
+
+.navbar {
+	margin-bottom: 0;
+}
+
+.nav-tabs {
+    border-bottom: 0;
+}
+
+.navbar-toggle {
+	margin-right: 0;
+}
+
+.navbar {
+    border-radius: 0;
+}
+
+code {
+	white-space: normal;
+}
