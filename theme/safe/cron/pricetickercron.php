@@ -11,7 +11,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
-include('/var/www/omnicha.in/theme/functions.php');
+require_once('/var/www/omnicha.in/theme/safe/functions.php');
 if ($_SERVER['argv']['1'] == "--cron") {
 	$omc_btc_price = json_decode(file_get_contents('https://www.allcrypt.com/api?method=singlemarketdata&marketid=672'), true);
 	if ($omc_btc_price != null) {

@@ -11,8 +11,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
-require_once('/var/www/omnicha.in/theme/safe/db.php');
-require_once('/var/www/omnicha.in/theme/safe/wallet.php');
+require_once('/var/www/omnicha.in/theme/safe/db/db.php');
+require_once('/var/www/omnicha.in/theme/safe/db/wallet.php');
 $omc_btc_price = get_option($database, "omc_btc_price");
 $btc_usd_price = get_option($database, "btc_usd_price");
 $omc_usd_price = $omc_btc_price * $btc_usd_price;

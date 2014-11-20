@@ -12,7 +12,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
 session_start();
-require_once('/var/www/omnicha.in/theme/recaptchalib.php');
+require_once('/var/www/omnicha.in/theme/safe/recaptchalib.php');
 get_header($pages, $currentpage, "Claim Address");
 ?>
 <div class="container">
