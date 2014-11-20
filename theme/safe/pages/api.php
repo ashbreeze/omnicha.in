@@ -183,12 +183,14 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 	} else if ($_GET['method'] == "wallet_genaddr") {
 		$login = check_wallet_login(isset($_GET['username']) ? $_GET['username'] : null, isset($_GET['password']) ? $_GET['password'] : null, $_SERVER['REMOTE_ADDR'], $database, true);
 		if ($login[0] == "GOOD_LOGIN") {
-			//if ((strtotime(date("y-m-d H:i:s")) - strtotime($login[1]['last_new_address'])) >= (60 * 60)) {
+			if ((strtotime(date("y-m-d H:i:s")) - strtotime($login[1]['last_new_address'])) >= (60)) {
 				$error = false;
 				$address = $wallet->getnewaddress($login[1]['username']);
 				$response['address'] = $address;
 				mysqli_query($database, "UPDATE users SET last_new_address = '" . date("y-m-d H:i:s") . "' WHERE id = '" . $login[1]['id'] . "'");
-			//}
+			} else {
+				$error_message = "TOO_SOON";
+			}
 		} else {
 			$error_message = $login[0];
 		}
@@ -323,6 +325,24 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		} else {
 			$error_message = $login[0];
 		}
+	} else if ($_GET['method'] == "wallet_signmessage") {
+		$login = check_wallet_login(isset($_GET['username']) ? $_GET['username'] : null, isset($_GET['password']) ? $_GET['password'] : null, $_SERVER['REMOTE_ADDR'], $database, true);
+		if ($login[0] == "GOOD_LOGIN") {
+			if (isset($_GET['address']) && is_string($_GET['address']) && isset($_GET['message']) && is_string($_GET['message'])) {
+				$address = $_GET['address'];
+				$message = $_GET['message'];
+
+				$address_safe = preg_replace('/[^A-Za-z0-9]/', '', $address);
+				$message_safe = preg_replace('/[^A-Za-z0-9]/', '', $message);
+				
+				if ($wallet->getaccount($address_safe) == $login[1]['username']) {
+					$response['signature'] = $wallet->signmessage($address_safe, $message_safe);
+					$error = false;
+				}
+			}
+		} else {
+			$error_message = $login[0];
+		}
 	} else if ($_GET['method'] == "getbalance") {
 		if (isset($_GET['address']) && is_string($_GET['address'])) {
 			$address_safe = $size = preg_replace('/[^A-Za-z0-9]/', '', $_GET['address']);
@@ -403,16 +423,16 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		$error_message = "UNKOWN_API_METHOD";
 	}
 	if ($error) {
-		echo json_encode(array("error" => $error, "error_info" => $error_message));
+		echo json_encode(array("version" => API_VERSION, "error" => $error, "error_info" => $error_message));
 	} else {
-		echo json_encode(array("error" => $error, "response" => $response));
+		echo json_encode(array("version" => API_VERSION, "error" => $error, "response" => $response));
 	}
 } else {
-	get_header($pages, $currentpage, "API v0.1", "API");
+	get_header($pages, $currentpage, "API v" . API_VERSION, "API");
 	?>
 	<div class="container">
-		<div class="alert alert-info">
-			Updating the API and the API docs. Some data may be inaccurate or incomplete and is subject to change.
+		<div class="alert alert-danger">
+			The API is currently on version <?php echo API_VERSION; ?>, and therefore is subject to non backwards compatible changes without notice.
 		</div>
 		<h3>API Methods</h3>
 		<table class="table table-striped">
@@ -472,6 +492,10 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<td><a href="#wallet_importkey-docs" onClick="$('#panel-13').collapse('show');">wallet_importkey</a></td>
 				<td>Imports a private key into an online wallet (Currently disabled)</td>
 			</tr>
+			<tr>
+				<td><a href="#wallet_importkey-docs" onClick="$('#panel-14').collapse('show');">wallet_signmessage</a></td>
+				<td>Signs a message with the specified address</td>
+			</tr>
 		</table>
 		<div class="panel panel-default">
 			<div class="panel-heading">
@@ -482,7 +506,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 					Every call uses the endpoint <code>https://omnicha.in/api/</code>. The API method and all arguments are appended as GET arguments. All responses from the server will be in JSON format.
 				</p>
 				<p>
-					The API will return an array with 2 elements, <code>error</code> and <code>error_info</code> or <code>response</code>. If any error occurred <code>error</code> will equal <code>TRUE</code> and <code>error_info</code> will be populated with the error info. If no error occurred, <code>error</code> will be <code>FALSE</code> and <code>response</code> will contain any returned information from the API call.
+					The API will return an array with 3 elements, <code>version</code>, <code>error</code> and <code>error_info</code> or <code>response</code>. If any error occurred <code>error</code> will equal <code>TRUE</code> and <code>error_info</code> will be populated with the error info. If no error occurred, <code>error</code> will be <code>FALSE</code> and <code>response</code> will contain any returned information from the API call.
 				</p>
 				<div class="panel panel-default">
 					<table class="table table-striped">
@@ -503,6 +527,10 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 						<tr>
 							<th>Return Variable</th>
 							<th>Description</th>
+						</tr>
+						<tr>
+							<td>version <span class="label label-info">String</span></td>
+							<td>Current API version</td>
 						</tr>
 						<tr>
 							<td>error <span class="label label-info">Boolean</span></td>
@@ -538,6 +566,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api/?method=testcall</code> with error:
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": true,
 	"error_info": "Unknown API method"
 }</code></pre>
@@ -546,6 +575,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api/?method=getwstats</code> with no error:
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"users": 81,
@@ -617,6 +647,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api/?method=getinfo</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"block_count": 106239,
@@ -690,6 +721,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=getbalance&address=oYSANYiopYAZ68YmHNcZv4g9W3q97wWt3v</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"balance": 22595.60459331
@@ -750,6 +782,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=checkaddress&address=oYSANYiopYAZ68YmHNcZv4g9W3q97wWt3v</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"isvalid": true
@@ -828,6 +861,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=verifymessage&address=obaMRGwpBM8kQcEydJFTMoC23WYX3by6Fx&message=Test Signing Message&signature=Hxry2N6pWfDSZrjKGUqFRmAe2JZWFIgDysd6oIdFv7KBlNRcYDRyt9NQuJJkZDXNA56bwBeG6gmipuEx3RIdlUA=</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"isvalid": true
@@ -926,6 +960,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=getcharts&zoom=3600</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"difficulty": [0, 0.067952005434041, 0.13503441250499, 0.86525169754056, 1.7578842482421, ...],
@@ -1000,6 +1035,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=getrichlist</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false, 
 	"response": {
 		"last_update": "14-11-17 21:03:49",
@@ -1055,6 +1091,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=getwstats</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"users": 81, 
@@ -1130,6 +1167,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_register&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff&passwordConfirm=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": []
 }</code></pre>
@@ -1197,6 +1235,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_login&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"session": "de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e"
@@ -1314,6 +1353,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_getinfo&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"tx_out": 1,
@@ -1358,7 +1398,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			</div>
 			<div id="panel-11" class="panel-body panel-collapse collapse">
 				<p>
-					The wallet_genaddr method generates and adds a new address to an online wallet. A valid username and session are required.
+					The wallet_genaddr method generates and adds a new address to an online wallet. A valid username and session are required. This API has a limit of 1 call per minute.
 				</p>
 				<div class="panel panel-default">
 					<table class="table table-striped">
@@ -1405,11 +1445,16 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<td>BAD_LOGIN</td>
 							<td>The <code>username</code> and <code>session</code> are invalid</td>
 						</tr>
+						<tr>
+							<td>TOO_SOON</td>
+							<td>It has been less than 1 minute since generating an address</td>
+						</tr>
 					</table>
 				</div>
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_genaddr&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"address": "oYkhfMSwQqHyTVgocefyc17sBQyHGxXMJ3"
@@ -1521,6 +1566,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_send&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e&address=oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa&amount=1</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
 		"address": "oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa",
@@ -1530,7 +1576,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				</p>
 			</div>
 		</div>
-				<div class="panel panel-default" id="wallet_send-docs">
+		<div class="panel panel-default" id="wallet_send-docs">
 			<div class="panel-heading" data-toggle="collapse" href="#panel-13" aria-expanded="false" style="cursor: pointer;">
 				<h4 class="panel-title">
 					wallet_importkey
@@ -1587,8 +1633,77 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_importkey&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e&address=oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa&privkey=5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF</code>
 					<pre><code class="language-json">{
+	"version": "0.1.0",
 	"error": false,
 	"response": {
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_send-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-14" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_signmessage
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-14" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_signmessage method signs a message with the specified <code>address</code>. A valid username and session are required.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>A valid online wallet username</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password <span class="label label-info">String</span></td>
+							<td>A valid session for the <code>username</code></td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>address <span class="label label-info">String</span></td>
+							<td>A valid Omnicoin address</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>message <span class="label label-info">String</span></td>
+							<td>A message to sign</td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>IP_BANNED</td>
+							<td>The connecting IP has been banned</td>
+						</tr>
+						<tr>
+							<td>BAD_LOGIN</td>
+							<td>The <code>username</code> and <code>session</code> are invalid</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_signmessage&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e&address=oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa&privkey=5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF&address=obaMRGwpBM8kQcEydJFTMoC23WYX3by6Fx&message=Test Signing Message</code>
+					<pre><code class="language-json">{
+	"version": "0.1.0",
+	"error": false,
+	"response": {
+		signature: "IHhUplmFWTffh2RY6mO9pwdp3jAV7v8MXpjrXu2kFkOF1HslGDz5Dp46fAy0EpOUVjYBs29/rL4ncXwkqPuC+s8="
 	}
 }</code></pre>
 				</p>

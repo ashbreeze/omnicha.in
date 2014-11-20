@@ -1,7 +1,5 @@
 <?php
-if ($_SERVER['REMOTE_ADDR'] != "98.16.142.33") {
-	error_reporting(0);
-}
+error_reporting(0);
 /* Copyright (c) 2014 by the Omnicoin Team.
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -13,6 +11,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>. */
+
+define("API_VERSION", "0.2.0");
 
 require_once('/var/www/omnicha.in/theme/safe/functions.php');
 require_once('/var/www/omnicha.in/theme/safe/header.php');

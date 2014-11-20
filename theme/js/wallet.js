@@ -265,7 +265,7 @@ function getnewaddress() {
 			if (jsonResponse.error_info == "BAD_LOGIN") {
 				logout();
 			} else {
-				$(".tab-2").prepend("<div class='alert alert-danger receive-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>You can only create 1 new address per hour.</div>")
+				$(".tab-2").prepend("<div class='alert alert-danger receive-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>You can only create 1 new address per minute.</div>")
 			}
 		} else {
 			$(".tab-2").prepend("<div class='alert alert-success receive-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Created a new Omnicoin address: " + jsonResponse.response.address + "</div>")
