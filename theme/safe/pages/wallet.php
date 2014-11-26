@@ -142,6 +142,7 @@ get_header($pages, $currentpage, "Wallet", "Wallet", false);
 				<tr>
 					<th>Address</th>
 					<th>Private Key</th>
+					<th>Sign Message</th>
 				</tr>
 			</table>
 		</div>
@@ -160,7 +161,7 @@ get_header($pages, $currentpage, "Wallet", "Wallet", false);
 			</table>
 		</div>
 	</div>
-	<div class="modal fade" id="import-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+	<div class="modal fade" id="import-modal" tabindex="-1" aria-hidden="true">
 		<div class="modal-dialog">
 			<div class="modal-content">
 				<div class="modal-header">
@@ -178,6 +179,30 @@ get_header($pages, $currentpage, "Wallet", "Wallet", false);
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 					<button type="button" class="btn btn-primary" onClick="importkey();">Import</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="signmessage-modal" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+					<h4 class="modal-title" id="myModalLabel">Sign Message</h4>
+				</div>
+				<div class="modal-body" id="signmessage-body">
+					<form class="form">
+						<div class="form-group">
+							<input class="form-control" id="signmessage-address" type="text" placeholder="Address" disabled required>
+						</div>
+						<div class="form-group" id="signmessage-message-group">
+							<textarea class="form-control" id="signmessage-message" type="text" placeholder="Message" required></textarea>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					<button type="button" class="btn btn-primary" onClick="signmessage();">Sign</button>
 				</div>
 			</div>
 		</div>

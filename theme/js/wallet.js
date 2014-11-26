@@ -198,7 +198,7 @@ function getwalletinfo() {
 			$(".receive-list-address").remove();
 			for (var key in jsonResponse.response.addresses) {
 				var address = jsonResponse.response.addresses[key];
-				$("#address-list").append("<tr class='receive-list-address'><td><a href=/?address=" + address.address + "' target='_blank'>" + address.address + "</a></td><td><button type='button' class='btn btn-primary btn-xs' onClick='showPrivKey(\"" + address.private_key + "\");'>Show</button></td></tr>");
+				$("#address-list").append("<tr class='receive-list-address'><td><a href=/?address=" + address.address + "' target='_blank'>" + address.address + "</a></td><td><button type='button' class='btn btn-primary btn-xs' onClick='showPrivKey(\"" + address.private_key + "\");'>Show</button></td><td><button type='button' class='btn btn-primary btn-xs' onClick='$(\"#signmessage-address\").val(\"" + address.address + "\");$(\"#signmessage-message\").val(\"\");$(\".signmessage-alert\").remove();$(\"#signmessage-modal\").modal(\"show\");'>Sign Message</button></td></tr>");
 			}
 			window.omcPrice = jsonResponse.response.omc_usd_price;
 		}
@@ -294,6 +294,32 @@ function importkey() {
 			}
 		} else {
 			$("#import-key-body").prepend("<div class='alert alert-success import-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Success!</div>")
+			getwalletinfo();
+		}
+	});
+}
+
+function signmessage() {
+	$(".signmessage-alert").remove();
+	var json = {"method": "wallet_signmessage", "username": window.username, "password": window.session, "address": $("#signmessage-address").val(), "message": $("#signmessage-message").val()};
+	$.ajax({
+		url: "/api",
+		type: "GET",
+		data: $.param(json),
+		contentType: "application/json"
+	}).fail(function() {
+		alert("Error connecting to server");
+	}).done(function(data) {
+		$(".signmessage-alert").remove();
+		var jsonResponse = jQuery.parseJSON(data);
+		if (jsonResponse.error) {
+			if (jsonResponse.error_info == "BAD_LOGIN") {
+				logout();
+			} else {
+				$("#import-key-body").prepend("<div class='alert alert-danger import-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Invalid private key.</div>")
+			}
+		} else {
+			$("#signmessage-body").prepend("<div class='alert alert-success import-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Generated signature: " + jsonResponse.response.signature + "</div>")
 			getwalletinfo();
 		}
 	});

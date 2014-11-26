@@ -1690,6 +1690,18 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<div class="panel panel-default">
 					<table class="table table-striped">
 						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>signature <span class="label label-info">String</span></td>
+							<td>The generated signature</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
 							<th>Error</th>
 							<th>Description</th>
 						</tr>
