@@ -236,7 +236,9 @@ function sendomnicoins() {
 			} else if (jsonResponse.error_info == "BROKE") {
 				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>You don't have that many OmniCoins!</div>");
 			} else if (jsonResponse.error_info == "BROKE_FEE") {
-				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>You don't have enough OmniCoins to include a transaction fee! (0.1 OMC)</div>");
+				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>You don't have enough OmniCoins to include a transaction fee! (0.1 OMC).</div>");
+			} else if (jsonResponse.error_info == "SEND_ERROR") {
+				$(".tab-1").prepend("<div class='alert alert-danger send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>An error occurred while creating the transaction.</div>");
 			}
 		} else {
 			$(".tab-1").prepend("<div class='alert alert-success send-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Sent " + jsonResponse.response.amount + " OMC to " + jsonResponse.response.address + "</div>");

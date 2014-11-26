@@ -290,7 +290,6 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 									break;
 								}
 							}
-
 							$transaction = $wallet->createrawtransaction($inputs, array($address_safe => doubleval($amount_safe), $addresses[0] => doubleval($input_total - $amount_safe - 0.1)));
 							$signed_transaction = $wallet->signrawtransaction($transaction);
 							if ($signed_transaction != false && $signed_transaction['complete'] == true) {
@@ -382,7 +381,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 
 		$response['block_count'] = intval($lastblock['block_height']);
 		$response['difficulty'] = doubleval($mininginfo['difficulty']);
-		$response["netmhps"] = doubleval($wallet->getnetworkhashps(-1, intval($lastblock['block_height'])) / 1000000);
+		$response["netmhps"] = doubleval($wallet->getnetworkhashps(1, intval($lastblock['block_height'])) / 1000000);
 		$response["seconds_since_block"] = intval(time() - $lastblock['block_nTime']);
 		$response["avg_block_time"] = doubleval($time['block_time']);
 		$response["total_mined_omc"] = doubleval(format_satoshi($lastblock['block_total_satoshis']));
