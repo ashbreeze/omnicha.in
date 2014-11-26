@@ -92,8 +92,10 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		if ($login[0] == "GOOD_LOGIN") {
 			$error = false;
 			$session = hash('sha512', uniqid(mt_rand(1, mt_getrandmax()), true));
+			$response['first_time'] = $login[1]['session'] == "";
 			mysqli_query($database, "UPDATE users SET session = '" . $session . "', session_expire_time = '" . date("y-m-d H:i:s") . "' WHERE id = '" . $login[1]['id'] . "'");
 			$response['session'] = $session;
+			
 		} else {
 			$error_message = $login[0];
 		}
@@ -1195,6 +1197,10 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<td>session <span class="label label-info">String</span></td>
 							<td>A new session variable</td>
 						</tr>
+						<tr>
+							<td>first_time <span class="label label-info">Boolean</span></td>
+							<td>Whether this is the users first login</td>
+						</tr>
 					</table>
 				</div>
 				<div class="panel panel-default">
@@ -1739,7 +1745,7 @@ function check_wallet_login($username, $password, $ip, $database, $session = fal
 						} else {
 							$salt = mysqli_fetch_array($salt);
 							$passwordSalted = hash('sha512', $passwordSafe . $salt['salt']);
-							$user = mysqli_query($database, "SELECT id, last_new_address, username FROM users WHERE username = '" . $usernameSafe . "' AND password = '" . $passwordSalted . "'");
+							$user = mysqli_query($database, "SELECT id, last_new_address, username, session FROM users WHERE username = '" . $usernameSafe . "' AND password = '" . $passwordSalted . "'");
 							if ($user->num_rows != 1) {
 								$toReturn = "BAD_LOGIN";
 							} else {
@@ -1748,7 +1754,7 @@ function check_wallet_login($username, $password, $ip, $database, $session = fal
 							}
 						}
 					} else {
-						$user = mysqli_query($database, "SELECT id, username, session_expire_time, last_new_address FROM users WHERE username = '" . $usernameSafe . "' AND session = '" . $passwordSafe . "'");
+						$user = mysqli_query($database, "SELECT id, username, session, session_expire_time, last_new_address FROM users WHERE username = '" . $usernameSafe . "' AND session = '" . $passwordSafe . "'");
 						
 						$user2 = mysqli_fetch_array($user);
 						if ($user->num_rows != 1) {

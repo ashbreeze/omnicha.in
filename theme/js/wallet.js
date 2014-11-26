@@ -190,7 +190,6 @@ function getwalletinfo() {
 			$(".balance").html(format_num(jsonResponse.response.balance) + " OMC");
 			$(".pending_balance").html(format_num(jsonResponse.response.pending_balance) + " OMC");
 			$(".balance-title").html(format_num(jsonResponse.response.balance) + " OMC <small>$" + format_num(omc2usd(omcPrice, jsonResponse.response.balance, 100)) + " USD</small>");
-			$(".pending_balance").html(jsonResponse.response.pending_balance + " OMC");
 			$(".transaction-entry").remove();
 			for (var key in jsonResponse.response.transactions) {
 				var tx = jsonResponse.response.transactions[key];
