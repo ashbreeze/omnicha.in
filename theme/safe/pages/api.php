@@ -377,13 +377,16 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		$mininginfo = $wallet->getmininginfo();
 		$blockReward = format_satoshi($wallet->getBlockTemplate()['coinbasevalue']);
 		$lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_total_satoshis, b.block_nTime, b.block_id, b.block_height FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"));
-		$time = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT AVG(a.block_nTime-b.block_nTime) AS 'block_time' FROM block AS a, block AS b WHERE a.block_nTime >= " . (strtotime(date("y-m-d H:i:s")) - (60 * 60 * 24)) . " AND a.prev_block_id = b.block_id"));
-
+		$time_24 = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT AVG(a.block_nTime-b.block_nTime) AS 'block_time' FROM block AS a, block AS b WHERE a.block_nTime >= " . (strtotime(date("y-m-d H:i:s")) - (60 * 60 * 24)) . " AND a.prev_block_id = b.block_id"));
+		$time_1 = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT AVG(a.block_nTime-b.block_nTime) AS 'block_time' FROM block AS a, block AS b WHERE a.block_nTime >= " . (strtotime(date("y-m-d H:i:s")) - (60 * 60)) . " AND a.prev_block_id = b.block_id"));
+		
+		
 		$response['block_count'] = intval($lastblock['block_height']);
 		$response['difficulty'] = doubleval($mininginfo['difficulty']);
 		$response["netmhps"] = doubleval($wallet->getnetworkhashps(1, intval($lastblock['block_height'])) / 1000000);
 		$response["seconds_since_block"] = intval(time() - $lastblock['block_nTime']);
-		$response["avg_block_time"] = doubleval($time['block_time']);
+		$response["avg_block_time_24"] = doubleval($time_24['block_time']);
+		$response["avg_block_time_1"] = doubleval($time_1['block_time']);
 		$response["total_mined_omc"] = doubleval(format_satoshi($lastblock['block_total_satoshis']));
 		$response['omc_btc_price'] = doubleval($omc_btc_price);
 		$response['omc_usd_price'] = doubleval(omc2usd($omc_usd_price, 1));
@@ -620,8 +623,12 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<td>The number of seconds since the last block was mined</td>
 						</tr>
 						<tr>
-							<td>avg_block_time <span class="label label-info">Double</span></td>
-							<td>The average seconds it took to mine a block in the last 24 hours</td>
+							<td>avg_block_time_1 <span class="label label-info">Double</span></td>
+							<td>The average seconds it took to mine a block in the last hour. Zero is returned if no blocks have been found.</td>
+						</tr>
+						<tr>
+							<td>avg_block_time_24 <span class="label label-info">Double</span></td>
+							<td>The average seconds it took to mine a block in the last 24 hours. Zero is returned if no blocks have been found.</td>
 						</tr>
 						<tr>
 							<td>total_mined_omc <span class="label label-info">Double</span></td>

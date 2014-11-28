@@ -46,8 +46,13 @@ get_header($pages, $currentpage, "Stats");
 			<td><a href="/charts/#block-time"><span class="glyphicon glyphicon-signal text-primary"></span></a></td>
 		</tr>
 		<tr>
+			<td>1 Hour Average Block Time</td>
+			<td id="avg_block_time_1"></td>
+			<td></td>
+		</tr>
+		<tr>
 			<td>24 Hour Average Block Time</td>
-			<td id="avg_block_time"></td>
+			<td id="avg_block_time_24"></td>
 			<td></td>
 		</tr>
 		<tr>
@@ -112,7 +117,8 @@ get_header($pages, $currentpage, "Stats");
 				$("#difficulty").html(jsonResponse.response.difficulty);
 				$("#hashrate").html(jsonResponse.response.netmhps + " MH/s");
 				$("#last_block_time").html(format_time(0, jsonResponse.response.seconds_since_block, true));
-				$("#avg_block_time").html(format_time(0, jsonResponse.response.avg_block_time, true));
+				$("#avg_block_time_1").html(jsonResponse.response.avg_block_time_1 == 0 ? "No blocks found" : format_time(0, jsonResponse.response.avg_block_time_1, true));
+				$("#avg_block_time_24").html(jsonResponse.response.avg_block_time_24 == 0 ? "No blocks found" : format_time(0, jsonResponse.response.avg_block_time_24, true));
 				$("#omc_btc_price").html(jsonResponse.response.omc_btc_price + " BTC");
 				$("#omc_usd_price").html("$" + jsonResponse.response.omc_usd_price);
 				$("#market_cap").html("$" + format_num(jsonResponse.response.market_cap));
