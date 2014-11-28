@@ -18,7 +18,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 	$error_message = "UNKNOWN_ERROR";
 	$response = array();
 	if ($_GET['method'] == "getcharts") {
-		$zoom = "3600";
+		$zoom = "86400";
 		if (isset($_GET['zoom']) && is_string($_GET['zoom'])) {
 			$zoom = $_GET['zoom'] == "15m" 	? "900"		 : $zoom;
 			$zoom = $_GET['zoom'] == "30m" 	? "1800"	 : $zoom;
@@ -27,9 +27,32 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			$zoom = $_GET['zoom'] == "12h" 	? "43200" 	 : $zoom;
 			$zoom = $_GET['zoom'] == "1d" 	? "86400"	 : $zoom;
 		}
+		$mysqlTime = $zoom == "900" 	? "1500" 	: $mysqlTime;
+		$mysqlTime = $zoom == "1800" 	? "2500" 	: $mysqlTime;
+		$mysqlTime = $zoom == "3600" 	? "10000" 	: $mysqlTime;
+		$mysqlTime = $zoom == "21600"	? "75000" 	: $mysqlTime;
+		$mysqlTime = $zoom == "43200" 	? "200000" 	: $mysqlTime;
+		$mysqlTime = $zoom == "86400" 	? "1000000" : $mysqlTime;
 		$error = false;
 		$btc_usd_price = get_option($database, "btc_usd_price");
-		$graph_data_query = mysqli_query($database, "(SELECT id, date, difficulty, exchange_price, exchange_volume, tx_num, tx_volume, block_time, hashrate, coins_mined, total_coins_mined, total_tx_num, total_tx_volume FROM charts WHERE id = 1) UNION (SELECT a.id, a.date, a.difficulty, a.exchange_price, a.exchange_volume, a.tx_num, a.tx_volume, a.block_time, a.hashrate, a.coins_mined, a.total_coins_mined, a.total_tx_num, a.total_tx_volume FROM charts AS a JOIN charts AS b ON(a.id - 1 = b.id) WHERE a.date > (b.date + " . $zoom . ") AND a.id != 1)");
+		$graph_data_query = mysqli_query($database, "
+			SELECT 
+				AVG(difficulty) as 'difficulty',
+				AVG(exchange_price) as 'exchange_price', 
+				AVG(exchange_volume) as 'exchange_volume', 
+				SUM(tx_num) as 'tx_num', 
+				SUM(tx_volume) as 'tx_volume', 
+				AVG(block_time) as 'block_time', 
+				AVG(hashrate) as 'hashrate', 
+				MAX(coins_mined) as 'coins_mined', 
+				MAX(total_coins_mined) as 'total_coins_mined', 
+				MAX(total_tx_num) as 'total_tx_num', 
+				MAX(total_tx_volume) as 'total_tx_volume' 
+			FROM 
+				charts 
+			GROUP BY
+				date DIV " . $mysqlTime . "
+			");
 		$response = array("difficulty" => array(), "btc_price" => array(), "usd_price" => array(), "volume" => array(), "transactions" => array(), "transaction_volume" => array(), "block_time" => array(), "hashrate" => array(), "coins_mined" => array(), "lifetime_coins_mined" => array(), "lifetime_transactions" => array(), "lifetime_transactions_volume" => array(), "zoom" => intval($zoom));
 		$lastTime = 0;
 		while ($day = mysqli_fetch_array($graph_data_query)) {
@@ -901,7 +924,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<td>zoom <span class="label label-info">Integer</span></td>
 							<td>Seconds between data entries</td>
 							<td>900, 1800, 3600, 21600, 43200, 86400</td>
-							<td>No (defaults 3600)</td>
+							<td>No (defaults 86400)</td>
 						</tr>
 					</table>
 				</div>

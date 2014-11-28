@@ -12,12 +12,29 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
 get_header($pages, $currentpage, "Charts");
+
+$zoom = "";
+
+if (isset($_GET['zoom'])) {
+	$zoom = $_GET['zoom'] == "15m" ? $_GET['zoom'] : $zoom;
+	$zoom = $_GET['zoom'] == "30m" ? $_GET['zoom'] : $zoom;
+	$zoom = $_GET['zoom'] == "1h" ? $_GET['zoom'] : $zoom;
+	$zoom = $_GET['zoom'] == "6h" ? $_GET['zoom'] : $zoom;
+	$zoom = $_GET['zoom'] == "12h" ? $_GET['zoom'] : $zoom;
+	$zoom = $_GET['zoom'] == "1d" ? $_GET['zoom'] : $zoom;
+}
 ?>
 <div class="container">
-	<div class="alert alert-info">
-		Currently working on a new charts system. Data is a little inaccurate.
-	</div>
 	<div class="row">
+		<div class="btn-group btn-group-xs">
+			<div class="btn">Detail:</div>
+			<a href="charts?zoom=15m" type="button" class="btn btn-default<?php echo $zoom == "15m" || $zoom == "" ? " active" : ""; ?>">15m</a>
+			<a href="charts?zoom=30m" type="button" class="btn btn-default<?php echo $zoom == "30m" ? " active" : ""; ?>">30m</a>
+			<a href="charts?zoom=1h" type="button" class="btn btn-default<?php echo $zoom == "1h" ? " active" : ""; ?>">1h</a>
+			<a href="charts?zoom=6h" type="button" class="btn btn-default<?php echo $zoom == "6h" ? " active" : ""; ?>">6h</a>
+			<a href="charts?zoom=12h" type="button" class="btn btn-default<?php echo $zoom == "12h" ? " active" : ""; ?>">12h</a>
+			<a href="charts?zoom=1d" type="button" class="btn btn-default<?php echo $zoom == "1d" ? " active" : ""; ?>">1d</a>
+		</div>
 		<div style="margin-bottom:50px;" id="difficulty"></div>
 		<div style="margin-bottom:50px;" id="price"></div>
 		<div style="margin-bottom:50px;" id="volume"></div>
@@ -34,29 +51,12 @@ get_header($pages, $currentpage, "Charts");
 <script>
 	$("document").ready(function() {
 		$.ajax({
-			url: "/api?method=getcharts",
+			url: "/api?method=getcharts<?php echo $zoom == "" ? "" : ("&zoom=" . $zoom); ?>",
 			type: "GET",
 			contentType: "application/json"
 		}).done(function(data) {
 			var jsonResponse = jQuery.parseJSON(data);
-			/*
-			function afterSetExtremes(e) {
-				var chart = $('#difficulty').highcharts();
-				var zoom = e.rangeSelectorButton.text
-				
-				chart.showLoading('Loading data from server...');
-				$.ajax({
-					url: "/api?method=getcharts&zoom=" + zoom,
-					type: "GET",
-					contentType: "application/json"
-				}).done(function(data) {
-					var jsonResponse = jQuery.parseJSON(data);
-					chart.series[0].setData(jsonResponse.response.difficulty);
-					//chart.series[0].update({pointInterval: 1000 * jsonResponse.response.zoom});
-					chart.hideLoading();
-				});
-			}
-			*/
+
 			$('#difficulty').highcharts('StockChart', {
 				title: {
 					text: 'Average Mining Difficulty Per Day',
@@ -64,14 +64,7 @@ get_header($pages, $currentpage, "Charts");
 				},
 				xAxis: {
 					type: 'datetime',
-					minRange: 1000 * 60 * 15/*,
-					events: {
-						afterSetExtremes: function(e) {
-							if (typeof(e.rangeSelectorButton) !== 'undefined') {
-								afterSetExtremes(e);
-							}
-						}
-					}*/
+					minRange: 1000 * jsonResponse.response.zoom,
 				},
 				yAxis: {
 					title: {
@@ -99,29 +92,28 @@ get_header($pages, $currentpage, "Charts");
 				rangeSelector: {
 					allButtonsEnabled: true,
 					buttons: [{
-						type: '',
-						count: 0,
-						text: '15m'
+						type: 'week',
+						count: 1,
+						text: '1w'
 					},{
-						type: '',
-						count: 0,
-						text: '30m'
+						type: 'month',
+						count: 1,
+						text: '1m'
 					},{
-						type: '',
-						count: 0,
-						text: '1h'
+						type: 'month',
+						count: 3,
+						text: '3m'
 					},{
-						type: '',
-						count: 0,
-						text: '6h'
+						type: 'month',
+						count: 6,
+						text: '6m'
 					},{
-						type: '',
-						count: 0,
-						text: '12h'
+						type: 'year',
+						count: 1,
+						text: '1y'
 					},{
-						type: '',
-						count: 0,
-						text: '1d'
+						type: 'all',
+						text: 'All'
 					}],
 					selected: 5
 				}
