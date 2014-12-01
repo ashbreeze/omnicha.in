@@ -446,6 +446,27 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		} else {
 			$error_message = "ADDRESS_NOT_SPECIFIED";
 		}
+	} else if ($_GET['method'] == "earningscalc") {
+		if (isset($_GET['hashrate']) && is_string($_GET['hashrate'])) {
+			$error = false;
+			$hashrate_safe = preg_replace('/[^0-9.]/', '', $_GET['hashrate']);
+			$lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_height FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"));
+			if (isset($_GET['difficulty']) && is_string($_GET['difficulty'])) {
+				$difficulty_safe = preg_replace('/[^0-9.]/', '', $_GET['difficulty']);
+			} else {
+				$mininginfo = $wallet->getmininginfo();
+				$difficulty_safe = $mininginfo['difficulty'];
+			}
+			$coinsPerDay = calculate_reward($lastblock['block_height']) * (24 * 3600) / ($difficulty_safe * (pow(2, 32) / ($hashrate_safe * 1000000)));
+			$daily = doubleval($coinsPerDay);
+			$weekly = doubleval($coinsPerDay * 7);
+			$monthly = doubleval($coinsPerDay * 30.4375);
+			$yearly = doubleval($coinsPerDay * 365.25);
+			
+			$response = array("daily" => $daily, "weekly" => $weekly, "monthly" => $monthly, "yearly" => $yearly);
+		} else {
+			$error_message = "HASHRATE_NOT_SPECIFIED";
+		}
 	} else {
 		$error_message = "UNKOWN_API_METHOD";
 	}
@@ -494,6 +515,10 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			<tr>
 				<td><a href="#getwstats-docs" onClick="$('#panel-7').collapse('show');">getwstats</a></td>
 				<td>Get total users and total balance of all online wallet accounts</td>
+			</tr>
+			<tr>
+				<td><a href="#getwstats-docs" onClick="$('#panel-15').collapse('show');">earningscalc</a></td>
+				<td>Calculates the amount of OMC that will be mined with the specified hashrate</td>
 			</tr>
 			<tr>
 				<td><a href="#wallet_register-docs" onClick="$('#panel-8').collapse('show');">wallet_register</a></td>
@@ -1127,6 +1152,87 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 	"response": {
 		"users": 81, 
 		"balance": 7426.45055478
+	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="earningscalc-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-15" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					earningscalc
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-15" class="panel-body panel-collapse collapse">
+				<p>
+					The earningscalc method returns the amount of OMC that will be mined with the specified hashrate
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+						<tr>
+							<td>hashrate <span class="label label-info">Double</span></td>
+							<td>The hashrate in MH/s</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>difficulty <span class="label label-info">Double</span></td>
+							<td>The difficulty to base calculations on</td>
+							<td>No</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Return Variable</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>daily <span class="label label-info">Double</span></td>
+							<td>The number of Omnicoins mined in 1 day</td>
+						</tr>
+						<tr>
+							<td>weekly <span class="label label-info">Double</span></td>
+							<td>The number of Omnicoins mined in 1 week</td>
+						</tr>
+						<tr>
+							<td>monthly <span class="label label-info">Double</span></td>
+							<td>The number of Omnicoins mined in 1 month</td>
+						</tr>
+						<tr>
+							<td>yearly <span class="label label-info">Double</span></td>
+							<td>The number of Omnicoins mined in 1 year</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>HASHRATE_NOT_SPECIFIED</td>
+							<td><code>hashrate</code> was not passed to the API</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>http://omnicha.in/api?method=earningscalc&hashrate=1</code>
+					<pre><code class="language-json">{
+	"version": "0.5.0",
+	"error": false,
+	"response": {
+		"daily": 50.319344074786,
+		"weekly": 352.2354085235,
+		"monthly": 1531.5950352763,
+		"yearly": 18379.140423316
 	}
 }</code></pre>
 				</p>
