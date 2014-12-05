@@ -98,17 +98,17 @@ if (isset($_GET['block']) && is_string($_GET['block'])) {
 		$block_valid = true;
 		$title = "Block: " . $block['block_height'];
 		
-		$addr = hash_to_address(mysqli_fetch_array(mysqli_query($abedatabase, "SELECT pubkey_hash FROM txout_detail WHERE block_id = '" . $block['block_id'] . "' LIMIT 1"))['pubkey_hash']);
+		$addr = hash_to_address(mysqli_fetch_array(mysqli_query($abedatabase, "SELECT pubkey_hash FROM txout_detail WHERE block_id = '" . $block['block_id'] . "' AND tx_pos = 0"))['pubkey_hash']);
 		$finder = mysqli_query($database, "SELECT label, pool_url FROM claimed_addresses WHERE address = '" . $addr . "'");
 		if ($finder->num_rows == 1) {
 			$label = mysqli_fetch_array($finder);
 			if ($label['pool_url'] == "") {
-				$finder = "<a href='?address=" . hash_to_address($block['pubkey_hash']) . "'>" . $label['label'] . "</a>";
+				$finder = "<a href='?address=" . $addr . "'>" . $label['label'] . "</a>";
 			} else {
 				$finder = "<a href='" . $label['pool_url'] . "' target='_blank'>" . $label['label'] . "</a>";
 			}
 		} else {
-			$finder = "<a href='?address=" . hash_to_address($block['pubkey_hash']) . "'>" . substr(hash_to_address($block['pubkey_hash']), 0, 20) . "...</a>";
+			$finder = "<a href='?address=" . $addr . "'>" . substr($addr, 0, 20) . "...</a>";
 		}
 	}
 }
@@ -602,18 +602,18 @@ if ($title) {
 				$blocks[] = $block;
 			}
 			foreach ($blocks as $block) {
-				$addr = hash_to_address(mysqli_fetch_array(mysqli_query($abedatabase, "SELECT pubkey_hash FROM txout_detail WHERE block_id = '" . $block['block_id'] . "' LIMIT 1"))['pubkey_hash']);
+				$addr = hash_to_address(mysqli_fetch_array(mysqli_query($abedatabase, "SELECT pubkey_hash FROM txout_detail WHERE block_id = '" . $block['block_id'] . "' AND tx_pos = 0"))['pubkey_hash']);
 				$finder = mysqli_query($database, "SELECT label, pool_url FROM claimed_addresses WHERE address = '" . $addr . "'");
 				
 				if ($finder->num_rows == 1) {
 					$label = mysqli_fetch_array($finder);
 					if ($label['pool_url'] == "") {
-						$finder = "<a href='?address=" . hash_to_address($block['pubkey_hash']) . "'>" . $label['label'] . "</a>";
+						$finder = "<a href='?address=" . $addr . "'>" . $label['label'] . "</a>";
 					} else {
 						$finder = "<a href='" . $label['pool_url'] . "' target='_blank'>" . $label['label'] . "</a>";
 					}
 				} else {
-					$finder = "<a href='?address=" . hash_to_address($block['pubkey_hash']) . "'>" . substr(hash_to_address($block['pubkey_hash']), 0, 20) . "...</a>";
+					$finder = "<a href='?address=" . $addr . "'>" . substr($addr, 0, 20) . "...</a>";
 				}
 				?>
 				<tr>
