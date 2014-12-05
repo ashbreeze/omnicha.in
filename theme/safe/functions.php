@@ -13,9 +13,37 @@ along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
 require_once('/var/www/omnicha.in/theme/safe/db/db.php');
 require_once('/var/www/omnicha.in/theme/safe/db/wallet.php');
+require_once('/var/www/omnicha.in/theme/safe/phpmailer/PHPMailerAutoload.php');
+
 $omc_btc_price = get_option($database, "omc_btc_price");
 $btc_usd_price = get_option($database, "btc_usd_price");
 $omc_usd_price = $omc_btc_price * $btc_usd_price;
+
+function domail($email, $subject, $message) {
+	global $mandrill_username, $mandrill_password;
+	$mail = new PHPMailer;
+	$mail->IsSMTP();
+	$mail->isHTML();
+	$mail->SMTPAuth = true;
+
+	$mail->SMTPSecure = "tls";
+
+	$mail->Host = "smtp.mandrillapp.com";
+	$mail->Username = $mandrill_username;
+	$mail->Password = $mandrill_password;
+	$mail->Port = 587;
+
+
+	$mail->From = "donotreply@omnicha.in";
+	$mail->FromName = "OmniChain";
+
+	$mail->AddAddress($email);
+	$mail->Subject = $subject;
+
+	$mail->Body = $message;
+	
+	return $mail->Send();
+}
 
 function format_num($val, $precision = 10) {
 	$to_return = rtrim(rtrim(number_format(round($val, $precision), $precision), "0"), ".");

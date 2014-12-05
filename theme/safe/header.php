@@ -39,7 +39,7 @@ if ($tabtitle == null) {
 			<script src="/theme/js/bootstrap.min.js"></script>
 			<script src="/theme/js/script.js"></script>
 			<script src="/theme/js/prism.js"></script>
-			<?php if ($currentpage['id'] == 4) { ?>
+			<?php if ($currentpage['id'] == 5) { ?>
 				<script src="/theme/js/highcharts.js"></script>
 				<script src="/theme/js/highcharts-exporting.js"></script>
 			<?php } else if ($currentpage['id'] == 2) { ?>

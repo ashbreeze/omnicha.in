@@ -22,19 +22,19 @@ get_header($pages, $currentpage, "Wallet", "Wallet", false);
 	</div>
 	<div class="container post-login-nav" style="display: none;">
 		<ul class="nav nav-tabs">
-			<li onClick="selectTab(0);" class="hidden-xs tab-selector tab-selector-0 active"><a style="cursor: pointer;">Home</a></li>
-			<li onClick="selectTab(1);" class="hidden-xs tab-selector tab-selector-1"><a style="cursor: pointer;">Send</a></li>
-			<li onClick="selectTab(2);" class="hidden-xs tab-selector tab-selector-2"><a style="cursor: pointer;">Receive</a></li>
-			<li onClick="selectTab(3);" class="hidden-xs tab-selector tab-selector-3"><a style="cursor: pointer;">Transactions</a></li>
+			<li onClick="selectTab(0);" class="hidden-xs tab-selector tab-selector-0 active"><a style="cursor: pointer;"><span class="glyphicon glyphicon-credit-card"></span> Home</a></li>
+			<li onClick="selectTab(1);" class="hidden-xs tab-selector tab-selector-1"><a style="cursor: pointer;"><span class="glyphicon glyphicon-send"></span> Send</a></li>
+			<li onClick="selectTab(2);" class="hidden-xs tab-selector tab-selector-2"><a style="cursor: pointer;"><span class="glyphicon glyphicon-envelope"></span> Receive</a></li>
+			<li onClick="selectTab(3);" class="hidden-xs tab-selector tab-selector-3"><a style="cursor: pointer;"><span class="glyphicon glyphicon-th-list"></span> Transactions</a></li>
 			<li class="dropdown active visible-xs">
 				<a class="dropdown-toggle current-tab-name" data-toggle="dropdown" href="#">
-				Home <span class="caret"></span>
+				<span class="glyphicon glyphicon-credit-card"></span> Home <span class="caret"></span>
 				</a>
 				<ul class="dropdown-menu">
-					<li onClick="selectTab(0);" class="tab-selector tab-selector-0 active"><a style="cursor: pointer;">Home</a></li>
-					<li onClick="selectTab(1);" class="tab-selector tab-selector-1"><a style="cursor: pointer;">Send</a></li>
-					<li onClick="selectTab(2);" class="tab-selector tab-selector-2"><a style="cursor: pointer;">Receive</a></li>
-					<li onClick="selectTab(3);" class="tab-selector tab-selector-3"><a style="cursor: pointer;">Transactions</a></li>
+					<li onClick="selectTab(0);" class="tab-selector tab-selector-0 active"><a style="cursor: pointer;"><span class="glyphicon glyphicon-credit-card"></span> Home</a></li>
+					<li onClick="selectTab(1);" class="tab-selector tab-selector-1"><a style="cursor: pointer;"><span class="glyphicon glyphicon-send"></span> Send</a></li>
+					<li onClick="selectTab(2);" class="tab-selector tab-selector-2"><a style="cursor: pointer;"><span class="glyphicon glyphicon-envelope"></span> Receive</a></li>
+					<li onClick="selectTab(3);" class="tab-selector tab-selector-3"><a style="cursor: pointer;"><span class="glyphicon glyphicon-th-list"></span> Transactions</a></li>
 				</ul>
 			</li>
 		</ul>
