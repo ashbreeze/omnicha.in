@@ -92,13 +92,14 @@ if (isset($_GET['address']) && is_string($_GET['address'])) {
 if (isset($_GET['block']) && is_string($_GET['block'])) {
 	$is_block = true;
 	$blockhash = preg_replace('/[^0-9A-Za-z]/', '', $_GET['block']);
-	$block = mysqli_query($abedatabase, "SELECT c.block_id, c.block_hash, c.block_hashMerkleRoot, c.block_nTime, c.block_nBits, c.block_height, c.prev_block_hash, c.block_value_out, c.block_value_in, c.block_total_seconds, c.block_num_tx, t.pubkey_hash FROM chain_summary AS c JOIN chain_candidate AS cc ON (cc.block_id = c.block_id) JOIN txout_detail AS t WHERE c.block_hash = '" . $blockhash . "' AND cc.in_longest = 1 AND t.block_hash = c.block_hash");
+	$block = mysqli_query($abedatabase, "SELECT c.block_id, c.block_hash, c.block_hashMerkleRoot, c.block_nTime, c.block_nBits, c.block_height, c.prev_block_hash, c.block_value_out, c.block_value_in, c.block_total_seconds, c.block_num_tx FROM chain_summary AS c JOIN chain_candidate AS cc ON (cc.block_id = c.block_id) WHERE c.block_hash = '" . $blockhash . "' AND cc.in_longest = 1");
 	if ($block && $block->num_rows == 1) {
 		$block = mysqli_fetch_array($block);
 		$block_valid = true;
 		$title = "Block: " . $block['block_height'];
 		
-		$finder = mysqli_query($database, "SELECT label, pool_url FROM claimed_addresses WHERE address = '" . hash_to_address($block['pubkey_hash']) . "'");
+		$addr = hash_to_address(mysqli_fetch_array(mysqli_query($abedatabase, "SELECT pubkey_hash FROM txout_detail WHERE block_id = '" . $block['block_id'] . "' LIMIT 1"))['pubkey_hash']);
+		$finder = mysqli_query($database, "SELECT label, pool_url FROM claimed_addresses WHERE address = '" . $addr . "'");
 		if ($finder->num_rows == 1) {
 			$label = mysqli_fetch_array($finder);
 			if ($label['pool_url'] == "") {
@@ -595,13 +596,15 @@ if ($title) {
 				<th class="hidden-xs">Total Sent</th>
 			</tr>
 			<?php
-			$blocks_query = mysqli_query($abedatabase, "SELECT b.block_hash, b.block_height, b.block_nTime, b.block_nBits, b.block_num_tx, b.block_value_out, t.pubkey_hash FROM chain_summary AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) JOIN txout_detail AS t WHERE b.block_height >= " . $start . " AND b.block_height <= " . ($start + $size) . " AND cc.in_longest = 1 AND t.block_hash = b.block_hash ORDER BY b.block_height DESC LIMIT 0, " . $size);
+			$blocks_query = mysqli_query($abedatabase, "SELECT b.block_id, b.block_hash, b.block_height, b.block_nTime, b.block_nBits, b.block_num_tx, b.block_value_out FROM chain_summary AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE b.block_height >= " . $start . " AND b.block_height <= " . ($start + $size) . " ORDER BY cc.block_height DESC LIMIT 0, " . $size);
 			$blocks = array();
 			while ($block = mysqli_fetch_array($blocks_query)) {
 				$blocks[] = $block;
 			}
 			foreach ($blocks as $block) {
-				$finder = mysqli_query($database, "SELECT label, pool_url FROM claimed_addresses WHERE address = '" . hash_to_address($block['pubkey_hash']) . "'");
+				$addr = hash_to_address(mysqli_fetch_array(mysqli_query($abedatabase, "SELECT pubkey_hash FROM txout_detail WHERE block_id = '" . $block['block_id'] . "' LIMIT 1"))['pubkey_hash']);
+				$finder = mysqli_query($database, "SELECT label, pool_url FROM claimed_addresses WHERE address = '" . $addr . "'");
+				
 				if ($finder->num_rows == 1) {
 					$label = mysqli_fetch_array($finder);
 					if ($label['pool_url'] == "") {
