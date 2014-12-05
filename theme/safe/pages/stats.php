@@ -36,8 +36,13 @@ get_header($pages, $currentpage, "Stats");
 			<td><a href="/charts/#difficulty"><span class="glyphicon glyphicon-signal text-primary"></span></a></td>
 		</tr>
 		<tr>
-			<td>Current Mining Speed</td>
+			<td>Current Network Mining Speed</td>
 			<td id="hashrate"></td>
+			<td><a href="/charts/#hashrate"><span class="glyphicon glyphicon-signal text-primary"></span></a></td>
+		</tr>
+		<tr>
+			<td>Estimated Current Mining Speed</td>
+			<td id="hashrate_estimate"></td>
 			<td><a href="/charts/#hashrate"><span class="glyphicon glyphicon-signal text-primary"></span></a></td>
 		</tr>
 		<tr>
@@ -116,6 +121,7 @@ get_header($pages, $currentpage, "Stats");
 				$("#total_coins_mined").html(format_num(jsonResponse.response.total_mined_omc) + " OMC");
 				$("#difficulty").html(jsonResponse.response.difficulty);
 				$("#hashrate").html(jsonResponse.response.netmhps + " MH/s");
+				$("#hashrate_estimate").html(jsonResponse.response.estimate_netmhps + " MH/s");
 				$("#last_block_time").html(format_time(0, jsonResponse.response.seconds_since_block, true));
 				$("#avg_block_time_1").html(jsonResponse.response.avg_block_time_1 == 0 ? "No blocks found" : format_time(0, jsonResponse.response.avg_block_time_1, true));
 				$("#avg_block_time_24").html(jsonResponse.response.avg_block_time_24 == 0 ? "No blocks found" : format_time(0, jsonResponse.response.avg_block_time_24, true));

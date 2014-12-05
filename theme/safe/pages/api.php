@@ -397,16 +397,15 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		}
 	} else if ($_GET['method'] == "getinfo") {
 		$error = false;
-		$mininginfo = $wallet->getmininginfo();
-		$blockReward = format_satoshi($wallet->getBlockTemplate()['coinbasevalue']);
-		$lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_total_satoshis, b.block_nTime, b.block_id, b.block_height FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"));
+		$lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_total_satoshis, b.block_nTime, b.block_id, b.block_height, b.block_nBits FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"));
 		$time_24 = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT AVG(a.block_nTime-b.block_nTime) AS 'block_time' FROM block AS a, block AS b WHERE a.block_nTime >= " . (strtotime(date("y-m-d H:i:s")) - (60 * 60 * 24)) . " AND a.prev_block_id = b.block_id"));
 		$time_1 = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT AVG(a.block_nTime-b.block_nTime) AS 'block_time' FROM block AS a, block AS b WHERE a.block_nTime >= " . (strtotime(date("y-m-d H:i:s")) - (60 * 60)) . " AND a.prev_block_id = b.block_id"));
 		
 		
 		$response['block_count'] = intval($lastblock['block_height']);
-		$response['difficulty'] = doubleval($mininginfo['difficulty']);
-		$response["netmhps"] = doubleval($wallet->getnetworkhashps(1, intval($lastblock['block_height'])) / 1000000);
+		$response['difficulty'] = doubleval(calculate_difficulty($lastblock['block_nBits']));
+		$response["netmhps"] = doubleval($wallet->getnetworkhashps(120, intval($lastblock['block_height'])) / 1000000);
+		$response["estimate_netmhps"] = doubleval($wallet->getnetworkhashps(-1, intval($lastblock['block_height'])) / 1000000);
 		$response["seconds_since_block"] = intval(time() - $lastblock['block_nTime']);
 		$response["avg_block_time_24"] = doubleval($time_24['block_time']);
 		$response["avg_block_time_1"] = doubleval($time_1['block_time']);
