@@ -582,7 +582,7 @@ if ($title) {
 			<li class="hidden-xs<?php if ($size == 50) { echo " disabled"; } ?>"><a href="/?l=50&s=<?php echo $start; ?>">50</a></li>
 			<li class="hidden-xs<?php if ($size == 100) { echo " disabled"; } ?>"><a href="/?l=100&s=<?php echo $start; ?>">100</a></li>
 
-			<li class="hidden-xs next<?php if ($start + $size - 1 == $lastblock) { echo " disabled"; } ?>"><a href="/?l=<?php echo $size; ?>&s=<?php echo $lastblock - $size; ?>">Newest &rarr;</a></li>
+			<li class="hidden-xs next<?php if ($start + $size - 1 == $lastblock) { echo " disabled"; } ?>"><a href="/">Newest &rarr;</a></li>
 			<li class="next<?php if ($start + $size - 1 == $lastblock) { echo " disabled"; } ?>"><a href="/?l=<?php echo $size; ?>&s=<?php echo $start + $size; ?>">Newer &rarr;</a></li>
 		</ul>
 
@@ -638,7 +638,7 @@ if ($title) {
 			<li class="hidden-xs<?php if ($size == 50) { echo " disabled"; } ?>"><a href="/?l=50&s=<?php echo $start; ?>">50</a></li>
 			<li class="hidden-xs<?php if ($size == 100) { echo " disabled"; } ?>"><a href="/?l=100&s=<?php echo $start; ?>">100</a></li>
 
-			<li class="hidden-xs next<?php if ($start + $size - 1 == $lastblock) { echo " disabled"; } ?>"><a href="/?l=<?php echo $size; ?>&s=<?php echo $lastblock - $size; ?>">Newest &rarr;</a></li>
+			<li class="hidden-xs next<?php if ($start + $size - 1 == $lastblock) { echo " disabled"; } ?>"><a href="/">Newest &rarr;</a></li>
 			<li class="next<?php if ($start + $size - 1 == $lastblock) { echo " disabled"; } ?>"><a href="/?l=<?php echo $size; ?>&s=<?php echo $start + $size; ?>">Newer &rarr;</a></li>
 		</ul>
 		<?php
