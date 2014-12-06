@@ -39,7 +39,7 @@ get_header($pages, $currentpage, "Rich List");
 				$(".richie").remove();
 				for (var x = 0; x < jsonResponse.response.richlist.length; x++) {
 					var richie = jsonResponse.response.richlist[x];
-					$("#richlist").append("<tr class='richie'><td>" + richie.rank + "</td><td><a class='hidden-xs' href='/?address=" + richie.address + "'>" + richie.address + "</a><a class='visible-xs' href='/?address=" + richie.address + "'>" + richie.address.substring(0, 10) + "...</a></td><td>" + richie.vanity_name + "</td><td>" + format_num(richie.balance) + " OMC</td><td>$" + richie.usd_value + "</td><td>" + format_num(richie.percent, 2) + "%</td></tr>");
+					$("#richlist").append("<tr class='richie'><td>" + richie.rank + "</td><td><a class='hidden-xs' href='/?address=" + richie.address + "'>" + richie.address + "</a><a class='visible-xs' href='/?address=" + richie.address + "'>" + richie.address.substring(0, 10) + "...</a></td><td class='hidden-xs'>" + richie.vanity_name + "</td><td>" + format_num(richie.balance) + " OMC</td><td class='hidden-xs'>$" + richie.usd_value + "</td><td class='hidden-xs'>" + format_num(richie.percent, 2) + "%</td></tr>");
 				}
 			});
 		}

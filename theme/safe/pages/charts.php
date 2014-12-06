@@ -28,12 +28,12 @@ if (isset($_GET['zoom'])) {
 	<div class="row">
 		<div class="btn-group btn-group-xs">
 			<div class="btn">Detail:</div>
-			<a href="charts?zoom=15m" type="button" class="btn btn-default<?php echo $zoom == "15m" || $zoom == "" ? " active" : ""; ?>">15m</a>
+			<a href="charts?zoom=15m" type="button" class="btn btn-default<?php echo $zoom == "15m" ? " active" : ""; ?>">15m</a>
 			<a href="charts?zoom=30m" type="button" class="btn btn-default<?php echo $zoom == "30m" ? " active" : ""; ?>">30m</a>
 			<a href="charts?zoom=1h" type="button" class="btn btn-default<?php echo $zoom == "1h" ? " active" : ""; ?>">1h</a>
 			<a href="charts?zoom=6h" type="button" class="btn btn-default<?php echo $zoom == "6h" ? " active" : ""; ?>">6h</a>
 			<a href="charts?zoom=12h" type="button" class="btn btn-default<?php echo $zoom == "12h" ? " active" : ""; ?>">12h</a>
-			<a href="charts?zoom=1d" type="button" class="btn btn-default<?php echo $zoom == "1d" ? " active" : ""; ?>">1d</a>
+			<a href="charts?zoom=1d" type="button" class="btn btn-default<?php echo $zoom == "1d" || $zoom == "" ? " active" : ""; ?>">1d</a>
 		</div>
 		<div style="margin-bottom:50px;" id="difficulty"></div>
 		<div style="margin-bottom:50px;" id="price"></div>

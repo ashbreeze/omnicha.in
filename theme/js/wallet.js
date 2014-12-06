@@ -183,6 +183,7 @@ function getwalletinfo() {
 			}
 		} else {
 			var jsonResponse = jQuery.parseJSON(data);
+			window.omcPrice = jsonResponse.response.omc_usd_price;
 			$(".tx_in").html(jsonResponse.response.tx_in);
 			$(".tx_out").html(jsonResponse.response.tx_out);
 			$(".total_in").html(format_num(jsonResponse.response.total_in / 100000000) + " OMC");
@@ -200,7 +201,6 @@ function getwalletinfo() {
 				var address = jsonResponse.response.addresses[key];
 				$("#address-list").append("<tr class='receive-list-address'><td><a href=/?address=" + address.address + "' target='_blank'>" + address.address + "</a></td><td><button type='button' class='btn btn-primary btn-xs' onClick='showPrivKey(\"" + address.private_key + "\");'>Show</button></td><td><button type='button' class='btn btn-primary btn-xs' onClick='$(\"#signmessage-address\").val(\"" + address.address + "\");$(\"#signmessage-message\").val(\"\");$(\".signmessage-alert\").remove();$(\"#signmessage-modal\").modal(\"show\");'>Sign Message</button></td></tr>");
 			}
-			window.omcPrice = jsonResponse.response.omc_usd_price;
 		}
 	});
 }
