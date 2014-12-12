@@ -449,12 +449,11 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		if (isset($_GET['hashrate']) && is_string($_GET['hashrate'])) {
 			$error = false;
 			$hashrate_safe = preg_replace('/[^0-9.]/', '', $_GET['hashrate']);
-			$lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_height FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"));
+			$lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_height, b.block_nBits FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"));
 			if (isset($_GET['difficulty']) && is_string($_GET['difficulty'])) {
 				$difficulty_safe = preg_replace('/[^0-9.]/', '', $_GET['difficulty']);
 			} else {
-				$mininginfo = $wallet->getmininginfo();
-				$difficulty_safe = $mininginfo['difficulty'];
+				$difficulty_safe = calculate_difficulty($lastblock['block_nBits']);
 			}
 			$coinsPerDay = calculate_reward($lastblock['block_height']) * (24 * 3600) / ($difficulty_safe * (pow(2, 32) / ($hashrate_safe * 1000000)));
 			$daily = doubleval($coinsPerDay);
@@ -465,6 +464,72 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			$response = array("daily" => $daily, "weekly" => $weekly, "monthly" => $monthly, "yearly" => $yearly);
 		} else {
 			$error_message = "HASHRATE_NOT_SPECIFIED";
+		}
+	} else if ($_GET['method'] == "estimate_buy_omc") {
+		if (isset($_GET['btc']) && is_string($_GET['btc'])) {
+			$btc = preg_replace('/[^0-9.]/', '', $_GET['btc']);
+			
+			getACOrders();
+			
+			$totalOMC = 0;
+			$totalBTC = 0;
+			
+			foreach ($sellOrders as $x) {
+				if ($totalBTC < $btc) {
+					if ($x[2] + $totalBTC < $btc) {
+						$totalBTC += $x[2];
+						$totalOMC += $x[1];
+					} else {
+						$requiredPercent = ($btc - $totalBTC) / $x[1];
+						$totalBTC += $x[2] * $requiredPercent;
+						$totalOMC += $x[1] * $requiredPercent;
+					}
+				} else {
+					break;
+				}
+			}
+			
+			if ($totalBTC == $btc) {
+				$error = false;
+				$response = array("omc" => doubleval($totalOMC));
+			} else {
+				$error_message = "NOT_ENOUGH_SUPPLY";
+			}
+		} else {
+			$error_message = "OMC_NOT_SPECIFIED";
+		}
+	} else if ($_GET['method'] == "estimate_sell_omc") {
+		if (isset($_GET['omc']) && is_string($_GET['omc'])) {
+			$omc = preg_replace('/[^0-9.]/', '', $_GET['omc']);
+			
+			getACOrders();
+			
+			$totalOMC = 0;
+			$totalBTC = 0;
+			
+			foreach ($buyOrders as $x) {
+				if ($totalOMC < $omc) {
+					if ($x[1] + $totalOMC < $omc) {
+						$totalBTC += $x[2];
+						$totalOMC += $x[1];
+					} else {
+						$requiredPercent = ($omc - $totalOMC) / $x[1];
+						$totalBTC += $x[2] * $requiredPercent;
+						$totalOMC += $x[1] * $requiredPercent;
+					}
+				} else {
+					break;
+				}
+			}
+			
+			if ($totalOMC == $omc) {
+				$error = false;
+				$response = array("btc" => doubleval($totalBTC));
+			} else {
+				$error_message = "NOT_ENOUGH_DEMAND";
+			}
+		} else {
+			$error_message = "OMC_NOT_SPECIFIED";
 		}
 	} else {
 		$error_message = "UNKOWN_API_METHOD";
@@ -516,7 +581,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<td>Get total users and total balance of all online wallet accounts</td>
 			</tr>
 			<tr>
-				<td><a href="#getwstats-docs" onClick="$('#panel-15').collapse('show');">earningscalc</a></td>
+				<td><a href="#earningscalc-docs" onClick="$('#panel-15').collapse('show');">earningscalc</a></td>
 				<td>Calculates the amount of OMC that will be mined with the specified hashrate</td>
 			</tr>
 			<tr>
@@ -1920,5 +1985,42 @@ function check_wallet_login($username, $password, $ip, $database, $session = fal
 		}
 	}
 	return array($toReturn, $userdata);
+}
+
+function getACOrders() {
+	global $sellOrders, $buyOrders;
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_URL, "https://www.allcrypt.com/market?id=672");
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+	$data = curl_exec($ch);
+	curl_close($ch);
+
+	$sellOrders = array();
+	$buyOrders = array();
+
+	$sellInfo = explode("selltable", $data)[1];
+	$sellInfo = explode("<tr><td>Price</td><td>OMC</td><td>Total BTC</td></tr>", $sellInfo)[1];
+	$sellInfo = explode("</table>", $sellInfo)[0];
+	$sellInfo = explode("<td>", $sellInfo);
+
+	for ($w = 1; $w < count($sellInfo); $w += 3) {
+		$x = doubleval(str_replace(",", "", explode("</td>", $sellInfo[$w])[0]));
+		$y = doubleval(str_replace(",", "", explode("</td>", $sellInfo[$w + 1])[0]));
+		$z = doubleval(str_replace(",", "", explode("</td>", $sellInfo[$w + 2])[0]));
+		$sellOrders[] = array($x, $y, $z);
+	}
+
+	$buyInfo = explode("buytable", $data)[1];
+	$buyInfo = explode("<tr><td>Price</td><td>OMC</td><td>Total BTC</td></tr>", $buyInfo)[1];
+	$buyInfo = explode("</table>", $buyInfo)[0];
+	$buyInfo = explode("<td>", $buyInfo);
+
+	for ($w = 1; $w < count($buyInfo); $w += 3) {
+		$x = doubleval(str_replace(",", "", explode("</td>", $buyInfo[$w])[0]));
+		$y = doubleval(str_replace(",", "", explode("</td>", $buyInfo[$w + 1])[0]));
+		$z = doubleval(str_replace(",", "", explode("</td>", $buyInfo[$w + 2])[0]));
+		$buyOrders[] = array($x, $y, $z);
+	}
 }
 ?>

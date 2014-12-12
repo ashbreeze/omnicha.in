@@ -102,11 +102,7 @@ if (isset($_GET['block']) && is_string($_GET['block'])) {
 		$finder = mysqli_query($database, "SELECT label, pool_url FROM claimed_addresses WHERE address = '" . $addr . "'");
 		if ($finder->num_rows == 1) {
 			$label = mysqli_fetch_array($finder);
-			if ($label['pool_url'] == "") {
-				$finder = "<a href='?address=" . $addr . "'>" . $label['label'] . "</a>";
-			} else {
-				$finder = "<a href='" . $label['pool_url'] . "' target='_blank'>" . $label['label'] . "</a>";
-			}
+			$finder = "<a href='?address=" . $addr . "'>" . $label['label'] . "</a>";
 		} else {
 			$finder = "<a href='?address=" . $addr . "'>" . substr($addr, 0, 20) . "...</a>";
 		}
@@ -596,7 +592,7 @@ if ($title) {
 				<th class="hidden-xs">Total Sent</th>
 			</tr>
 			<?php
-			$blocks_query = mysqli_query($abedatabase, "SELECT b.block_id, b.block_hash, b.block_height, b.block_nTime, b.block_nBits, b.block_num_tx, b.block_value_out FROM chain_summary AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE b.block_height >= " . $start . " AND b.block_height <= " . ($start + $size) . " ORDER BY cc.block_height DESC LIMIT 0, " . $size);
+			$blocks_query = mysqli_query($abedatabase, "SELECT b.block_id, b.block_hash, b.block_height, b.block_nTime, b.block_nBits, b.block_num_tx, b.block_value_out FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE b.block_height >= " . $start . " AND b.block_height <= " . ($start + $size) . " ORDER BY cc.block_height DESC LIMIT 0, " . $size);
 			$blocks = array();
 			while ($block = mysqli_fetch_array($blocks_query)) {
 				$blocks[] = $block;
@@ -607,11 +603,7 @@ if ($title) {
 				
 				if ($finder->num_rows == 1) {
 					$label = mysqli_fetch_array($finder);
-					if ($label['pool_url'] == "") {
-						$finder = "<a href='?address=" . $addr . "'>" . $label['label'] . "</a>";
-					} else {
-						$finder = "<a href='" . $label['pool_url'] . "' target='_blank'>" . $label['label'] . "</a>";
-					}
+					$finder = "<a href='?address=" . $addr . "'>" . $label['label'] . "</a>";
 				} else {
 					$finder = "<a href='?address=" . $addr . "'>" . substr($addr, 0, 20) . "...</a>";
 				}

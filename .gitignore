@@ -1,4 +1,5 @@
 theme/safe/db/
 theme/safe/cron/miningcron.php
+theme/safe/cron/backupcron.php
 test.php
 keybase.txt

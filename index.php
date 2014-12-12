@@ -1,5 +1,4 @@
 <?php
-error_reporting(0);
 /* Copyright (c) 2014 by the Omnicoin Team.
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -12,7 +11,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
-define("API_VERSION", "0.6.1");
+define("API_VERSION", "0.7.1");
 
 require_once('/var/www/omnicha.in/theme/safe/functions.php');
 require_once('/var/www/omnicha.in/theme/safe/header.php');
@@ -22,12 +21,13 @@ $pages = array();
 $pages[] = array("id" => 0, 	"url" => array(array(""), array("chain", "omnicoin")),		"navtitle" => "Block Explorer", 	"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/home.php");
 $pages[] = array("id" => 2, 	"url" => array(array("wallet")), 							"navtitle" => "Wallet",				"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/wallet.php");
 $pages[] = array("id" => 3, 	"url" => array(array("wallet", "tos")), 					"navtitle" => "Wallet TOS",			"navbar" => false,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/wallet_tos.php");
-$pages[] = array("id" => 4, 	"url" => array(array("pool")), 								"navtitle" => "Pool",				"navbar" => true,	"force_ssl" => true, 	"label" => "New",		"filepath" => "");
+$pages[] = array("id" => 4, 	"url" => array(array("pool")), 								"navtitle" => "Pool",				"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "");
 $pages[] = array("id" => 1, 	"url" => array(array("stats")), 							"navtitle" => "Stats",				"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/stats.php");
 $pages[] = array("id" => 5, 	"url" => array(array("charts")), 							"navtitle" => "Charts",				"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/charts.php");
 $pages[] = array("id" => 7, 	"url" => array(array("api")), 								"navtitle" => "API",				"navbar" => true,	"force_ssl" => false, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/api.php");
 $pages[] = array("id" => 6, 	"url" => array(array("richlist")), 							"navtitle" => "Rich List",			"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/richlist.php");
-$pages[] = array("id" => 8, 	"url" => array(array("claimaddress")), 						"navtitle" => "Claim Address",		"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/claimaddress.php");
+//$pages[] = array("id" => 8, 	"url" => array(array("claimaddress")), 						"navtitle" => "Claim Address",		"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/claimaddress.php");
+$pages[] = array("id" => 9, 	"url" => array(array("exchange")), 							"navtitle" => "Exchange",			"navbar" => false,	"force_ssl" => true, 	"label" => "New",		"filepath" => "/var/www/omnicha.in/theme/safe/pages/exchange.php");
 
 
 $url = array();
