@@ -27,6 +27,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			$zoom = $_GET['zoom'] == "12h" 	? "43200" 	 : $zoom;
 			$zoom = $_GET['zoom'] == "1d" 	? "86400"	 : $zoom;
 		}
+		$mysqlTime = 0;
 		$mysqlTime = $zoom == "900" 	? "1500" 	: $mysqlTime;
 		$mysqlTime = $zoom == "1800" 	? "2500" 	: $mysqlTime;
 		$mysqlTime = $zoom == "3600" 	? "10000" 	: $mysqlTime;
@@ -54,9 +55,8 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				date DIV " . $mysqlTime . "
 			");
 		$response = array("difficulty" => array(), "btc_price" => array(), "usd_price" => array(), "volume" => array(), "transactions" => array(), "transaction_volume" => array(), "block_time" => array(), "hashrate" => array(), "coins_mined" => array(), "lifetime_coins_mined" => array(), "lifetime_transactions" => array(), "lifetime_transactions_volume" => array(), "zoom" => intval($zoom));
-		$lastTime = 0;
+
 		while ($day = mysqli_fetch_array($graph_data_query)) {
-			$lastTime = strtotime($day['date']);
 			$response['difficulty'][] = doubleval($day['difficulty']);
 			$response['btc_price'][] = doubleval($day['exchange_price']);
 			$response['usd_price'][] = doubleval($day['exchange_price'] * $btc_usd_price);
