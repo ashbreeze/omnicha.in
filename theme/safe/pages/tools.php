@@ -11,7 +11,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
-get_header($pages, $currentpage, "Mining Calc");
+get_header($pages, $currentpage, "Tools");
 
 $lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_nBits FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"));
 $difficulty = calculate_difficulty($lastblock['block_nBits']);
@@ -21,7 +21,7 @@ $difficulty = calculate_difficulty($lastblock['block_nBits']);
 		<div class="col-md-6">
 			<div class="panel panel-success">
 				<div class="panel-heading">
-					<h2 class="panel-title">Mining Calc</h2>
+					<h2 class="panel-title">Mining Calculator</h2>
 				</div>
 				<div class="panel-body">
 					<form class="form" id="buy_form">

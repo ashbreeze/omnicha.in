@@ -28,7 +28,7 @@ $pages[] = array("id" => 7, 	"url" => array(array("api")), 								"navtitle" =>
 $pages[] = array("id" => 6, 	"url" => array(array("richlist")), 							"navtitle" => "Rich List",			"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/richlist.php");
 //$pages[] = array("id" => 8, 	"url" => array(array("claimaddress")), 						"navtitle" => "Claim Address",		"navbar" => true,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/claimaddress.php");
 $pages[] = array("id" => 9, 	"url" => array(array("exchange")), 							"navtitle" => "Exchange",			"navbar" => false,	"force_ssl" => true, 	"label" => "New",		"filepath" => "/var/www/omnicha.in/theme/safe/pages/exchange.php");
-$pages[] = array("id" => 10, 	"url" => array(array("calc")), 								"navtitle" => "Mining Calc",		"navbar" => true,	"force_ssl" => true, 	"label" => "New",		"filepath" => "/var/www/omnicha.in/theme/safe/pages/calc.php");
+$pages[] = array("id" => 10, 	"url" => array(array("tools")), 							"navtitle" => "Tools",				"navbar" => true,	"force_ssl" => true, 	"label" => "New",		"filepath" => "/var/www/omnicha.in/theme/safe/pages/tools.php");
 
 
 $url = array();
