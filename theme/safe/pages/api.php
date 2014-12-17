@@ -452,6 +452,9 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			$lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_height, b.block_nBits FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"));
 			if (isset($_GET['difficulty']) && is_string($_GET['difficulty'])) {
 				$difficulty_safe = preg_replace('/[^0-9.]/', '', $_GET['difficulty']);
+				if ($difficulty_safe <= 0) {
+					$difficulty_safe = calculate_difficulty($lastblock['block_nBits']);
+				}
 			} else {
 				$difficulty_safe = calculate_difficulty($lastblock['block_nBits']);
 			}
