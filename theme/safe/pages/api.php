@@ -458,12 +458,15 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			} else {
 				$difficulty_safe = calculate_difficulty($lastblock['block_nBits']);
 			}
-			$coinsPerDay = calculate_reward($lastblock['block_height']) * (24 * 3600) / ($difficulty_safe * (pow(2, 32) / ($hashrate_safe * 1000000)));
+			if ($hashrate_safe > 0) {
+				$coinsPerDay = calculate_reward($lastblock['block_height']) * (24 * 3600) / ($difficulty_safe * (pow(2, 32) / ($hashrate_safe * 1000000)));
+			} else {
+				$coinsPerDay = 0;
+			}
 			$daily = doubleval($coinsPerDay);
 			$weekly = doubleval($coinsPerDay * 7);
 			$monthly = doubleval($coinsPerDay * 30.4375);
 			$yearly = doubleval($coinsPerDay * 365.25);
-			
 			$response = array("daily" => $daily, "weekly" => $weekly, "monthly" => $monthly, "yearly" => $yearly);
 		} else {
 			$error_message = "HASHRATE_NOT_SPECIFIED";

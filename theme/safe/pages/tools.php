@@ -50,8 +50,8 @@ $difficulty = calculate_difficulty($lastblock['block_nBits']);
 	</div>
 </div>
 <script>
-$("#hashrate").keyup(function() { calculate(); });
-$("#difficulty").keyup(function() { calculate(); });
+$("#hashrate").keyup(calculate);
+$("#difficulty").keyup(calculate);
 
 function calculate() {
 	var json = {"method": "earningscalc", "hashrate": $("#hashrate").val(), "difficulty": $("#difficulty").val()};
