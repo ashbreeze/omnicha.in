@@ -27,7 +27,7 @@ $difficulty = calculate_difficulty($lastblock['block_nBits']);
 					<form class="form" id="buy_form">
 						<div class="form-group">
 							<div class="input-group">
-								<input name="address" type="text" class="form-control" id="hashrate">
+								<input name="address" type="text" class="form-control" value="1" id="hashrate">
 								<span class="input-group-addon">MH/s</span>
 							</div>
 						</div>
@@ -52,6 +52,8 @@ $difficulty = calculate_difficulty($lastblock['block_nBits']);
 <script>
 $("#hashrate").keyup(calculate);
 $("#difficulty").keyup(calculate);
+
+calculate();
 
 function calculate() {
 	var json = {"method": "earningscalc", "hashrate": $("#hashrate").val(), "difficulty": $("#difficulty").val()};
