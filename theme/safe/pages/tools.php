@@ -40,7 +40,7 @@ $difficulty = calculate_difficulty($lastblock['block_nBits']);
 						<div class="form-group">
 							<div class="input-group">
 								<input name="address" type="text" class="form-control" id="earnings">
-								<span class="input-group-addon">OMC</span>
+								<span class="input-group-addon">OMC / day</span>
 							</div>
 						</div>
 					</form>
