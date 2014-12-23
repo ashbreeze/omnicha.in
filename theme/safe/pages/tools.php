@@ -17,7 +17,7 @@ $lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_nBits
 $difficulty = calculate_difficulty($lastblock['block_nBits']);
 ?>
 <div class="container">
-	<div class="row" class="step-1">
+	<div class="row">
 		<div class="col-md-6">
 			<div class="panel panel-success">
 				<div class="panel-heading">
@@ -47,6 +47,41 @@ $difficulty = calculate_difficulty($lastblock['block_nBits']);
 				</div>
 			</div>
 		</div>
+		<div class="col-md-6">
+			<div class="panel panel-info">
+				<div class="panel-heading">
+					<h2 class="panel-title">Mining Profitability Calculator</h2>
+				</div>
+				<div class="panel-body">
+					<form class="form" id="buy_form">
+						<div class="form-group">
+							<div class="input-group">
+								<input name="address" type="text" class="form-control" value="0.21" id="price">
+								<span class="input-group-addon">BTC/GH/Day</span>
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="input-group">
+								<input name="address" type="text" class="form-control" value="<?php echo $difficulty; ?>" id="difficulty2">
+								<span class="input-group-addon">Difficulty</span>
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="input-group">
+								<input name="address" type="text" class="form-control" value="<?php echo $omc_btc_price; ?>" id="rate">
+								<span class="input-group-addon">OMC/BTC Rate</span>
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="input-group">
+								<input name="address" type="text" class="form-control" id="profitability">
+								<span class="input-group-addon">Profitability</span>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
 <script>
@@ -69,6 +104,28 @@ function calculate() {
 		if (!jsonResponse.error) {
 			$("#earnings").val(number_format(jsonResponse.response.daily, 4));
 		}
+	});
+};
+
+$("#price").keyup(calculate2);
+$("#difficulty2").keyup(calculate2);
+$("#rate").keyup(calculate2);
+
+calculate2();
+
+function calculate2() {
+	var json = {"method": "earningscalc", "hashrate": 1000, "difficulty": $("#difficulty2").val()};
+	$.ajax({
+		url: "/api",
+		type: "GET",
+		data: $.param(json),
+		contentType: "application/json"
+	}).fail(function() {
+		alert("Error connecting to server");
+	}).done(function(data) {
+		var jsonResponse = jQuery.parseJSON(data);
+
+		$("#profitability").val(number_format(((jsonResponse.response.daily * $("#rate").val()) / $("#price").val()) * 100, 4) + "%");
 	});
 };
 </script>
