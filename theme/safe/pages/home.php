@@ -78,6 +78,12 @@ if (isset($_GET['search']) && is_string($_GET['search'])) {
 	} else {
 		$search_error = true;
 	}
+} else if ($url[0] == "block" && isset($url[1])) {
+	$_GET['block'] = preg_replace('/[^0-9A-Za-z]/', '', $url[1]);
+} else if ($url[0] == "tx" && isset($url[1])) {
+	$_GET['transaction'] = preg_replace('/[^0-9A-Za-z]/', '', $url[1]);
+} else if ($url[0] == "address" && isset($url[1])) {
+	$_GET['address'] = preg_replace('/[^0-9A-Za-z]/', '', $url[1]);
 }
 
 if (isset($_GET['address']) && is_string($_GET['address'])) {
@@ -97,15 +103,6 @@ if (isset($_GET['block']) && is_string($_GET['block'])) {
 		$block = mysqli_fetch_array($block);
 		$block_valid = true;
 		$title = "Block: " . $block['block_height'];
-		
-		$addr = hash_to_address(mysqli_fetch_array(mysqli_query($abedatabase, "SELECT pubkey_hash FROM txout_detail WHERE block_id = '" . $block['block_id'] . "' AND tx_pos = 0"))['pubkey_hash']);
-		$finder = mysqli_query($database, "SELECT label, pool_url FROM claimed_addresses WHERE address = '" . $addr . "'");
-		if ($finder->num_rows == 1) {
-			$label = mysqli_fetch_array($finder);
-			$finder = "<a href='?address=" . $addr . "'>" . $label['label'] . "</a>";
-		} else {
-			$finder = "<a href='?address=" . $addr . "'>" . substr($addr, 0, 20) . "...</a>";
-		}
 	}
 }
 
@@ -284,12 +281,23 @@ if ($title) {
 	} else if ($is_block) {
 		if ($block_valid) {
 			$good = true;
+			
+			$addr = hash_to_address(mysqli_fetch_array(mysqli_query($abedatabase, "SELECT pubkey_hash FROM txout_detail WHERE block_id = '" . $block['block_id'] . "' AND tx_pos = 0"))['pubkey_hash']);
+			$finder = mysqli_query($database, "SELECT label, pool_url FROM claimed_addresses WHERE address = '" . $addr . "'");
+			if ($finder->num_rows == 1) {
+				$label = mysqli_fetch_array($finder);
+				$finder_addr = $addr;
+				$finder_label = $label['label'];
+			} else {
+				$finder_addr = $addr;
+				$finder_label = $addr;
+			}
 			?>
 			<h2 class="hidden-xs">Block <small><?php echo $block['block_hash']; ?></small></h2>
 			<table class="table table-striped">
 				<tr>
 					<td>Finder</td>
-					<td><?php echo $finder; ?></td>
+					<td><span class="hidden-xs"><a href="/?address=<?php echo $finder_addr; ?>"><?php echo $finder_label; ?></a></span><span class="visible-xs"><a href="/?address=<?php echo $finder_addr; ?>"><?php echo strlen($finder_label) > 18 ? (substr($finder_label, 0, 18) . "...") : $finder_label; ?></a></span></td>
 				</tr>
 				<tr>
 					<td>Hash</td>

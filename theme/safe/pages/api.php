@@ -550,7 +550,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 	?>
 	<div class="container">
 		<div class="alert alert-danger">
-			The API is currently on version <?php echo API_VERSION; ?>, and therefore is subject to non backwards compatible changes without notice.
+			The API is currently in a minor version and therefore is subject to non backwards compatible changes without notice.
 		</div>
 		<h3>API Methods</h3>
 		<table class="table table-striped">
