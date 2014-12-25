@@ -30,6 +30,7 @@ $pages[] = array("id" => 6, 	"url" => array(array("richlist")), 							"navtitle
 //$pages[] = array("id" => 9, 	"url" => array(array("exchange")), 							"navtitle" => "Exchange",			"navbar" => false,	"force_ssl" => true, 	"label" => "New",		"filepath" => "/var/www/omnicha.in/theme/safe/pages/exchange.php");
 $pages[] = array("id" => 10, 	"url" => array(array("tools")), 							"navtitle" => "Tools",				"navbar" => true,	"force_ssl" => true, 	"label" => "New",		"filepath" => "/var/www/omnicha.in/theme/safe/pages/tools.php");
 $pages[] = array("id" => 11, 	"url" => array(array("sitemap.xml")), 						"navtitle" => "",					"navbar" => false,	"force_ssl" => false, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/sitemap.php");
+$pages[] = array("id" => 12, 	"url" => array(array("gettingstarted"), array("help")), 	"navtitle" => "Getting Started",	"navbar" => false,	"force_ssl" => true, 	"label" => "",			"filepath" => "/var/www/omnicha.in/theme/safe/pages/gettingstarted.php");
 
 
 $url = array();

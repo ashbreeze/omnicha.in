@@ -17,7 +17,7 @@ function get_footer() {
 	<div class="footer hidden-xs">
 		<div class="container">
 			<p class="text-muted" style="margin:10px 0;">
-				Website by <a href="http://www.hackforums.net/member.php?action=profile&uid=1256441">Abraham Lincoln</a>
+				Website by <a href="http://www.hackforums.net/member.php?action=profile&uid=1256441">Abraham Lincoln</a> - <a href="https://github.com/Omnicoin-Project/omnicha.in">GitHub</a>
 				<span class="pull-right">Server Time: <?php echo date("Y-m-d H:i:s"); ?> - <a href="#" data-toggle="modal" data-target="#node-modal"><?php echo count($peerinfo = $wallet->getpeerinfo()); ?> Connected Nodes</a></span>
 			</p>
 		</div>

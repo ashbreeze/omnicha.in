@@ -343,8 +343,8 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				$resp = $wallet->importprivkey($privkey_safe, $login[1]['username']);
 				if ($resp) {
 					$error = false;
-				}
-				*/
+				}*/
+				
 			}
 		} else {
 			$error_message = $login[0];

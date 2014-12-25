@@ -73,3 +73,60 @@ table {
 .captcha_hide {
 	display:none;
 }
+
+.help-header {
+	border-bottom: 1px solid #eee;
+	padding-bottom: 10px;
+}
+
+.help-section {
+	padding: 10px 0 25px 0;
+	font-size: 15px;
+	clear: both;
+}
+
+.help-section p {
+	padding: 5px 0 10px 0;
+}
+
+.sidebar {
+
+}
+
+.sidebar ul {
+	padding: 10px 0;
+	margin: 0;
+	font-size: 12px;
+}
+
+.sidebar ul li {
+	padding: 4px 30px;
+}
+
+.sidebar ul a, .sidebar ul a:hover {
+	text-decoration: none;
+}
+
+.sidebar ul li:hover {
+	background-color: #428bca;
+	color: #FFFFFF;
+}
+
+.sidebar ul li.header, .sidebar ul li.header:hover {
+	text-transform: uppercase;
+	color: #666666;
+	font-weight: bold;
+	padding-left: 15px;
+	background-color: transparent;
+}
+
+.image-right {
+	float: right;
+	margin: 0 0 1em 1em;
+}
+
+.image-center {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}

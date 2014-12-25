@@ -567,7 +567,7 @@ if ($title) {
 			<h3>Search</h3>
 			<p>Search by address, block number, block hash, or transaction ID.</p>
 			<form class="form-inline" method="get" action="/">
-				<div class="input-group">
+				<div class="input-group" style="width: 100%;">
 					<input class="form-control" name="search" type="text" placeholder="Address / Block / Hash / Transaction ID" autofocus>
 					<span class="input-group-btn">
 						<button class="btn btn-primary" type="submit">
