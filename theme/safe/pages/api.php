@@ -127,6 +127,8 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		
 		if ($login[0] == "GOOD_LOGIN") {
 			$lastblock = get_total_blocks($abedatabase);
+			$response['username'] = $login[1]['username'];
+			$response['email'] = $login[1]['email'];
 			$response['tx_out'] = 0;
 			$response['total_out'] = 0;
 			$response['tx_in'] = 0;
@@ -343,8 +345,8 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				$resp = $wallet->importprivkey($privkey_safe, $login[1]['username']);
 				if ($resp) {
 					$error = false;
-				}*/
-				
+				}
+				*/
 			}
 		} else {
 			$error_message = $login[0];
@@ -361,6 +363,63 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				
 				if ($wallet->getaccount($address_safe) == $login[1]['username']) {
 					$response['signature'] = $wallet->signmessage($address_safe, $message_safe);
+					$error = false;
+				}
+			}
+		} else {
+			$error_message = $login[0];
+		}
+	} else if ($_GET['method'] == "wallet_changepassword") {
+		$login = check_wallet_login(isset($_GET['username']) ? $_GET['username'] : null, isset($_GET['password']) ? $_GET['password'] : null, $_SERVER['REMOTE_ADDR'], $database, true);
+		if ($login[0] == "GOOD_LOGIN") {
+			if (isset($_GET['password_new']) && is_string($_GET['password_new']) && isset($_GET['password_new_confirm']) && is_string($_GET['password_new_confirm'])) {
+				$password = $_GET['password_new'];
+				$password_confirm = $_GET['password_new_confirm'];
+
+				$passwordSafe = preg_replace('/[^A-Za-z0-9]/', '', $password);
+				$password_confirmSafe = preg_replace('/[^A-Za-z0-9]/', '', $password_confirm);
+				
+				if ($password == "" || $password_confirm == "") {
+					$error_message = "EMPTY_REQUIRED_FIELDS";
+				} else if ($password != $passwordSafe || $password_confirm != $password_confirmSafe) {
+					$error_message = "INVALID_PASSWORD";
+				} else if ($passwordSafe != $password_confirmSafe) {
+					$error_message = "NONMATCHING_PASSWORDS";
+				} else {
+					$salt = hash('sha512', uniqid(mt_rand(1, mt_getrandmax()), true));
+					$passwordSalted = hash('sha512', $passwordSafe . $salt);
+					
+					mysqli_query($database, "UPDATE users SET salt = '" . $salt . "', password = '" . $passwordSalted . "' WHERE id = '" . $login[1]['id'] . "'");
+					$error = false;
+				}
+			}
+		} else {
+			$error_message = $login[0];
+		}
+	} else if ($_GET['method'] == "wallet_changeemail") {
+		$login = check_wallet_login(isset($_GET['username']) ? $_GET['username'] : null, isset($_GET['password']) ? $_GET['password'] : null, $_SERVER['REMOTE_ADDR'], $database, true);
+		if ($login[0] == "GOOD_LOGIN") {
+			if (isset($_GET['email']) && is_string($_GET['email'])) {
+				$email = $_GET['email'];
+
+				$emailSafe = preg_replace("/[^A-Za-z0-9@!#$%&*+-\/=?^_`{|}.~]/", "", $email);
+				
+				if ($email == "") {
+					$error_message = "EMPTY_REQUIRED_FIELDS";
+				} else if ($email != $emailSafe || filter_var($emailSafe, FILTER_VALIDATE_EMAIL) === false) {
+					$error_message = "INVALID_EMAIL";
+				} else {
+					$secret = hash('sha512', uniqid(mt_rand(1, mt_getrandmax()), true));
+					
+					mysqli_query($database, "INSERT INTO 2fa (uid, type, secret, action, data, expire) VALUES ('" . $login[1]['id'] . "', 'email', '" . $secret . "', 'updateemail', '" . $emailSafe . "', '" . date("y-m-d H:i:s") . "')");
+									
+					$message = "Hey there, " . $login[1]['username'] . ",<br><br>";
+					$message .= "We've received a request to change your wallet email to " . $emailSafe . "<br><br>";
+					$message .= "Please click on the following link to confirm the change: <a href='https://omnicha.in/wallet?conf=" . $secret . "'>https://omnicha.in/wallet?conf=" . $secret . "</a><br><br><br>";
+					$message .= "Thanks,<br><br>";
+					$message .= "The Omnichain Team";
+					
+					domail($emailSafe, "Omnicha.in: Confirm your email", $message);
 					$error = false;
 				}
 			}
@@ -538,7 +597,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			$error_message = "OMC_NOT_SPECIFIED";
 		}
 	} else {
-		$error_message = "UNKOWN_API_METHOD";
+		$error_message = "UNKNOWN_API_METHOD";
 	}
 	if ($error) {
 		echo json_encode(array("version" => API_VERSION, "error" => $error, "error_info" => $error_message));
@@ -618,6 +677,14 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<td><a href="#wallet_importkey-docs" onClick="$('#panel-14').collapse('show');">wallet_signmessage</a></td>
 				<td>Signs a message with the specified address</td>
 			</tr>
+			<tr>
+				<td><a href="#wallet_changepassword-docs" onClick="$('#panel-15').collapse('show');">wallet_changepassword</a></td>
+				<td>Changes the password to an online wallet</td>
+			</tr>
+			<tr>
+				<td><a href="#wallet_changeemail-docs" onClick="$('#panel-16').collapse('show');">wallet_changeemail</a></td>
+				<td>Changes the email to an online wallet</td>
+			</tr>
 		</table>
 		<div class="panel panel-default">
 			<div class="panel-heading">
@@ -675,7 +742,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 							<th>Description</th>
 						</tr>
 						<tr>
-							<td>UNKOWN_API_METHOD</td>
+							<td>UNKNOWN_API_METHOD</td>
 							<td>The requested API method was not found</td>
 						</tr>
 						<tr>
@@ -688,7 +755,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api/?method=testcall</code> with error:
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": true,
 	"error_info": "Unknown API method"
 }</code></pre>
@@ -697,7 +764,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api/?method=getwstats</code> with no error:
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"users": 81,
@@ -773,7 +840,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api/?method=getinfo</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"block_count": 106239,
@@ -847,7 +914,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=getbalance&address=oYSANYiopYAZ68YmHNcZv4g9W3q97wWt3v</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"balance": 22595.60459331
@@ -908,7 +975,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=checkaddress&address=oYSANYiopYAZ68YmHNcZv4g9W3q97wWt3v</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"isvalid": true
@@ -987,7 +1054,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=verifymessage&address=obaMRGwpBM8kQcEydJFTMoC23WYX3by6Fx&message=Test Signing Message&signature=Hxry2N6pWfDSZrjKGUqFRmAe2JZWFIgDysd6oIdFv7KBlNRcYDRyt9NQuJJkZDXNA56bwBeG6gmipuEx3RIdlUA=</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"isvalid": true
@@ -1005,7 +1072,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			</div>
 			<div id="panel-5" class="panel-body panel-collapse collapse">
 				<p>
-					The getinfo method returns data for generating the charts on <a href="https://omnicha.in/charts/">https://omnicha.in/charts/</a>. The first entry start on 2014-04-05 12:00:00 and each entry is separated by the zoom factor. No errors are thrown.
+					The getcharts method returns data for generating the charts on <a href="https://omnicha.in/charts/">https://omnicha.in/charts/</a>. The first entry start on 2014-04-05 12:00:00 and each entry is separated by the zoom factor. No errors are thrown.
 				</p>
 				<div class="panel panel-default">
 					<table class="table table-striped">
@@ -1086,7 +1153,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=getcharts&zoom=3600</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"difficulty": [0, 0.067952005434041, 0.13503441250499, 0.86525169754056, 1.7578842482421, ...],
@@ -1161,7 +1228,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=getrichlist</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false, 
 	"response": {
 		"last_update": "14-11-17 21:03:49",
@@ -1217,7 +1284,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=getwstats</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"users": 81, 
@@ -1296,7 +1363,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>http://omnicha.in/api?method=earningscalc&hashrate=1</code>
 					<pre><code class="language-json">{
-	"version": "0.5.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"daily": 50.319344074786,
@@ -1374,7 +1441,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_register&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff&passwordConfirm=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": []
 }</code></pre>
@@ -1446,7 +1513,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_login&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"session": "de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e"
@@ -1490,6 +1557,14 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 						<tr>
 							<th>Return Variable</th>
 							<th>Description</th>
+						</tr>
+						<tr>
+							<td>username <span class="label label-info">String</span></td>
+							<td>The username of the current user</td>
+						</tr>
+						<tr>
+							<td>email <span class="label label-info">String</span></td>
+							<td>The email of the current user</td>
 						</tr>
 						<tr>
 							<td>tx_out <span class="label label-info">Integer</span></td>
@@ -1564,7 +1639,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_getinfo&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"tx_out": 1,
@@ -1665,7 +1740,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_genaddr&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"address": "oYkhfMSwQqHyTVgocefyc17sBQyHGxXMJ3"
@@ -1777,7 +1852,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_send&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e&address=oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa&amount=1</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		"address": "oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa",
@@ -1844,7 +1919,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_importkey&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e&address=oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa&privkey=5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 	}
@@ -1923,11 +1998,122 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				<p>
 					Example API call to <code>https://omnicha.in/api?method=wallet_signmessage&username=test&password=de7ac123563e2578894af2de6872332228309dae4129a4522263f8dc277e984b875e18f3667e35f4729efe4c610bc47d9fb90b7403f4fdde37111f4257eebf5e&address=oRu1MYNpvZiU4RHPwfEkRQurvyfBGpHbNa&privkey=5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF&address=obaMRGwpBM8kQcEydJFTMoC23WYX3by6Fx&message=Test Signing Message</code>
 					<pre><code class="language-json">{
-	"version": "0.1.0",
+	"version": "<?php echo API_VERSION; ?>",
 	"error": false,
 	"response": {
 		signature: "IHhUplmFWTffh2RY6mO9pwdp3jAV7v8MXpjrXu2kFkOF1HslGDz5Dp46fAy0EpOUVjYBs29/rL4ncXwkqPuC+s8="
 	}
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_changepassword-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-15" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_changepassword
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-15" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_changepassword changes the password to an online wallet. No parameters are returned.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+							<tr>
+							<td>password_new <span class="label label-info">String</span></td>
+							<td>The new password for the wallet. Must by SHA512 encoded</td>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<td>password_new_confirm <span class="label label-info">String</span></td>
+							<td>The new password for the wallet confirmation. Must by SHA512 encoded and equal <code>password_new</code></td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>EMPTY_REQUIRED_FIELDS</td>
+							<td><code>password_new</code> or <code>password_new_confirm</code> is empty</td>
+						</tr>
+						<tr>
+							<td>INVALID_PASSWORD</td>
+							<td><code>password_new</code> or <code>password_new_confirm</code> contain invalid characters</td>
+						</tr>
+						<tr>
+							<td>NONMATCHING_PASSWORDS</td>
+							<td><code>password_new</code> and <code>password_new_confirm</code> don't match</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_changepassword&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff&password_new=b27ac185d67b143732c304cc5fa9ad8e6f57f50028ee26b0dd4af7e749aa1af8a0e1d5f84f88bc887f8ee3c10ae9923f618980772e473f8819a5d4940e0da8ff&password_new_confirm=b27ac185d67b143732c304cc5fa9ad8e6f57f50028ee26b0dd4af7e749aa1af8a0e1d5f84f88bc887f8ee3c10ae9923f618980772e473f8819a5d4940e0da8ff</code>
+					<pre><code class="language-json">{
+	"version": "<?php echo API_VERSION; ?>",
+	"error": false,
+	"response": []
+}</code></pre>
+				</p>
+			</div>
+		</div>
+		<div class="panel panel-default" id="wallet_changeemail-docs">
+			<div class="panel-heading" data-toggle="collapse" href="#panel-16" aria-expanded="false" style="cursor: pointer;">
+				<h4 class="panel-title">
+					wallet_changeemail
+					<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+				</h4>
+			</div>
+			<div id="panel-16" class="panel-body panel-collapse collapse">
+				<p>
+					The wallet_changeemail changes the email to an online wallet. No parameters are returned. An email will be sent to the address specified with a confirmation code.
+				</p>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Argument</th>
+							<th>Description</th>
+							<th>Required</th>
+						</tr>
+							<tr>
+							<td>email <span class="label label-info">String</span></td>
+							<td>The new email for the wallet.</td>
+							<td>Yes</td>
+						</tr>
+					</table>
+				</div>
+				<div class="panel panel-default">
+					<table class="table table-striped">
+						<tr>
+							<th>Error</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>EMPTY_REQUIRED_FIELDS</td>
+							<td><code>email</code> is empty</td>
+						</tr>
+						<tr>
+							<td>INVALID_EMAIL</td>
+							<td><code>email</code> contain invalid characters or is not a valid email</td>
+						</tr>
+					</table>
+				</div>
+				<p>
+					Example API call to <code>https://omnicha.in/api?method=wallet_changeemail&username=test&password=ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff&email=test@test.com</code>
+					<pre><code class="language-json">{
+	"version": "<?php echo API_VERSION; ?>",
+	"error": false,
+	"response": []
 }</code></pre>
 				</p>
 			</div>
@@ -1962,7 +2148,7 @@ function check_wallet_login($username, $password, $ip, $database, $session = fal
 						} else {
 							$salt = mysqli_fetch_array($salt);
 							$passwordSalted = hash('sha512', $passwordSafe . $salt['salt']);
-							$user = mysqli_query($database, "SELECT id, last_new_address, username, session FROM users WHERE username = '" . $usernameSafe . "' AND password = '" . $passwordSalted . "'");
+							$user = mysqli_query($database, "SELECT id, username, session, session_expire_time, last_new_address, email FROM users WHERE username = '" . $usernameSafe . "' AND password = '" . $passwordSalted . "'");
 							if ($user->num_rows != 1) {
 								$toReturn = "BAD_LOGIN";
 							} else {
@@ -1971,7 +2157,7 @@ function check_wallet_login($username, $password, $ip, $database, $session = fal
 							}
 						}
 					} else {
-						$user = mysqli_query($database, "SELECT id, username, session, session_expire_time, last_new_address FROM users WHERE username = '" . $usernameSafe . "' AND session = '" . $passwordSafe . "'");
+						$user = mysqli_query($database, "SELECT id, username, session, session_expire_time, last_new_address, email FROM users WHERE username = '" . $usernameSafe . "' AND session = '" . $passwordSafe . "'");
 						
 						$user2 = mysqli_fetch_array($user);
 						if ($user->num_rows != 1) {

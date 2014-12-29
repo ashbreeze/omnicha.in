@@ -31,12 +31,14 @@ if ($tabtitle == null) {
 			<link href="/theme/css/bootstrap.min.css" rel="stylesheet">
 			<link href="/theme/css/override.css" rel="stylesheet">
 			<link href="/theme/css/prism.css" rel="stylesheet">
+			<link href="/theme/css/bootstrap-switch.css" rel="stylesheet">
 	
 			<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 			<link rel="icon" href="favicon.ico" type="image/x-icon">
 			
 			<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
 			<script src="/theme/js/bootstrap.min.js"></script>
+			<script src="/theme/js/bootstrap-switch.min.js"></script>
 			<script src="/theme/js/script.js"></script>
 			<script src="/theme/js/prism.js"></script>
 			<?php if ($currentpage['id'] == 5) { ?>

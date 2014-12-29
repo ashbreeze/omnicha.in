@@ -11,7 +11,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
-define("API_VERSION", "0.7.4");
+define("API_VERSION", "0.8.0");
 
 require_once('/var/www/omnicha.in/theme/safe/functions.php');
 require_once('/var/www/omnicha.in/theme/safe/header.php');

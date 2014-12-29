@@ -26,21 +26,37 @@ get_header($pages, $currentpage, "Wallet", "Wallet", false);
 			<li onClick="selectTab(1);" class="hidden-xs tab-selector tab-selector-1"><a style="cursor: pointer;"><span class="glyphicon glyphicon-send"></span> Send</a></li>
 			<li onClick="selectTab(2);" class="hidden-xs tab-selector tab-selector-2"><a style="cursor: pointer;"><span class="glyphicon glyphicon-envelope"></span> Receive</a></li>
 			<li onClick="selectTab(3);" class="hidden-xs tab-selector tab-selector-3"><a style="cursor: pointer;"><span class="glyphicon glyphicon-th-list"></span> Transactions</a></li>
+			<li onClick="selectTab(4);" class="hidden-xs tab-selector tab-selector-4"><a style="cursor: pointer;"><span class="glyphicon glyphicon-user"></span> Account</a></li>
 			<li class="dropdown active visible-xs">
 				<a class="dropdown-toggle current-tab-name" data-toggle="dropdown" href="#">
-				<span class="glyphicon glyphicon-credit-card"></span> Home <span class="caret"></span>
+					<span class="glyphicon glyphicon-credit-card"></span> Home <span class="caret"></span>
 				</a>
 				<ul class="dropdown-menu">
 					<li onClick="selectTab(0);" class="tab-selector tab-selector-0 active"><a style="cursor: pointer;"><span class="glyphicon glyphicon-credit-card"></span> Home</a></li>
 					<li onClick="selectTab(1);" class="tab-selector tab-selector-1"><a style="cursor: pointer;"><span class="glyphicon glyphicon-send"></span> Send</a></li>
 					<li onClick="selectTab(2);" class="tab-selector tab-selector-2"><a style="cursor: pointer;"><span class="glyphicon glyphicon-envelope"></span> Receive</a></li>
 					<li onClick="selectTab(3);" class="tab-selector tab-selector-3"><a style="cursor: pointer;"><span class="glyphicon glyphicon-th-list"></span> Transactions</a></li>
+					<li onClick="selectTab(4);" class="tab-selector tab-selector-4"><a style="cursor: pointer;"><span class="glyphicon glyphicon-user"></span> Account</a></li>
 				</ul>
 			</li>
 		</ul>
 	</div>
 </div>
 <div class="container">
+	<?php
+	if (isset($_GET['conf']) && is_string($_GET['conf'])) {
+		$conf = process2fa($database, "email", $_GET['conf']);
+		if ($conf == "INVALID") {
+			?>
+				<div class='alert alert-danger'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Invalid confirmation code!</div>
+			<?php
+		} else if ($conf == "EMAIL_UPDATED") {
+			?>
+				<div class='alert alert-success'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Email updated!</div>
+			<?php
+		}
+	}
+	?>
 	<form class="well form" id="login-form" style="margin:0 auto; max-width:358px;" onKeyPress="if (event.keyCode == 13) { login(); }">
 		<h2>Login</h2>
 		<div class="form-group" id="login-username-group">
@@ -159,6 +175,78 @@ get_header($pages, $currentpage, "Wallet", "Wallet", false);
 					<th>Balance</th>
 				</tr>
 			</table>
+		</div>
+	</div>
+	<div class="tab tab-4 hide">
+		<h3>Account</h3>
+		<div class="row">
+			<div class="col-sm-6">
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						Account Info
+					</div>
+					<div class="panel-body">
+						<form class="form-horizontal">
+							<div class="form-group">
+								<label class="col-lg-4 control-label">Username</label>
+								<div class="col-lg-8 control-label username" style="text-align: left;"></div>
+							</div>
+							<div class="form-group">
+								<label class="col-lg-4 control-label">Email</label>
+								<div class="col-lg-8 control-label email" style="text-align: left;"></div>
+							</div>
+						</form>
+					</div>
+				</div>
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						Change Password
+					</div>
+					<div class="panel-body">
+						<form class="form-horizontal" id="changepassword-form">
+							<div class="form-group" id="changepassword-new-group">
+								<label class="col-lg-4 control-label">New Password</label>
+								<div class="col-lg-8">
+									<input type="password" required="" class="form-control tip-right" id="changepassword-new" data-original-title="Pick a strong password between 10 and 30 characters in length. Make sure to write it down.">
+								</div>
+							</div>
+							<div class="form-group" id="changepassword-new-confirm-group">
+								<label class="col-lg-4 control-label">Confirm New Password</label>
+								<div class="col-lg-8">
+									<input type="password" required="" class="form-control tip-right" id="changepassword-new-confirm" data-original-title="Retype your password for safety.">
+								</div>
+							</div>
+							<div class="form-group">
+								<div class="col-lg-9 col-lg-offset-4">
+									<button class="btn btn-primary" type="button" onClick="changePassword();">Change Password</button>
+								</div>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+			<div class="col-sm-6">
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						Change Email
+					</div>
+					<div class="panel-body">
+						<form class="form-horizontal" id="changeemail-form">
+							<div class="form-group" id="changeemail-email-group">
+								<label class="col-lg-4 control-label">Email</label>
+								<div class="col-lg-8">
+									<input type="email" required="" class="form-control" id="changeemail-email">
+								</div>
+							</div>
+							<div class="form-group">
+								<div class="col-lg-9 col-lg-offset-4">
+									<button class="btn btn-primary" type="button" onClick="changeEmail();">Change Email</button>
+								</div>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 	<div class="modal fade" id="import-modal" tabindex="-1" aria-hidden="true">

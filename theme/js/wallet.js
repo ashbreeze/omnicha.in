@@ -191,6 +191,8 @@ function getwalletinfo() {
 			$(".balance").html(format_num(jsonResponse.response.balance) + " OMC");
 			$(".pending_balance").html(format_num(jsonResponse.response.pending_balance) + " OMC");
 			$(".balance-title").html(format_num(jsonResponse.response.balance) + " OMC <small>$" + format_num(omc2usd(omcPrice, jsonResponse.response.balance, 100)) + " USD</small>");
+			$(".username").html(jsonResponse.response.username);
+			$(".email").html(jsonResponse.response.email == "" ? "none" : jsonResponse.response.email);
 			$(".transaction-entry").remove();
 			for (var key in jsonResponse.response.transactions) {
 				var tx = jsonResponse.response.transactions[key];
@@ -323,6 +325,84 @@ function signmessage() {
 		} else {
 			$("#signmessage-body").prepend("<div class='alert alert-success import-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Generated signature: " + jsonResponse.response.signature + "</div>")
 			getwalletinfo();
+		}
+	});
+}
+
+function changePassword() {
+	$("#changepassword-current-group").removeClass("has-error");
+	$("#changepassword-new-group").removeClass("has-error");
+	$("#changepassword-new-confirm-group").removeClass("has-error");
+	$(".changepassword-alert").remove();
+	var json = {"method": "wallet_changepassword", "username": window.username, "password": window.session, "password_new": hex_sha512($("#changepassword-new-confirm").val()), "password_new_confirm": hex_sha512($("#changepassword-new").val())};
+	$.ajax({
+		url: "/api",
+		type: "GET",
+		data: $.param(json),
+		contentType: "application/json"
+	}).fail(function() {
+		alert("Error connecting to wallet server");
+	}).done(function(data) {
+		$("#changepassword-current-group").removeClass("has-error");
+		$("#changepassword-new-group").removeClass("has-error");
+		$("#changepassword-new-confirm-group").removeClass("has-error");
+		$(".changepassword-alert").remove();
+		var jsonResponse = jQuery.parseJSON(data);
+		if (jsonResponse.error) {
+			if (jsonResponse.error_info == "BAD_LOGIN") {
+				logout();
+			} else if (jsonResponse.error_info == "EMPTY_REQUIRED_FIELDS") {
+				$("#changepassword-new-group").addClass("has-error");
+				$("#changepassword-new-confirm-group").addClass("has-error");
+				$("#changepassword-form").prepend("<div class='alert alert-danger changepassword-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Required fields left empty</div>")
+			} else if (jsonResponse.error_info == "INVALID_PASSWORD") {
+				$("#changepassword-new-group").addClass("has-error");
+				$("#changepassword-new-confirm-group").addClass("has-error");
+				$("#changepassword-form").prepend("<div class='alert alert-danger changepassword-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Invalid password</div>")
+			} else if (jsonResponse.error_info == "NONMATCHING_PASSWORDS") {
+				$("#changepassword-new-group").addClass("has-error");
+				$("#changepassword-new-confirm-group").addClass("has-error");
+				$("#changepassword-form").prepend("<div class='alert alert-danger changepassword-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Passwords don't match</div>")
+			}
+		} else {
+			password = hex_sha512($("#changepassword-new").val());
+			$("#changepassword-new").val("");
+			$("#changepassword-new-confirm").val("");
+			$("#changepassword-form").prepend("<div class='alert alert-success changepassword-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Password updated!</div>")
+		}
+	});
+}
+
+function changeEmail() {
+	$("#changeemail-email").removeClass("has-error");
+	$("#changeemail-email-group").removeClass("has-error");
+	$(".changeemail-alert").remove();
+	var json = {"method": "wallet_changeemail", "username": window.username, "password": window.session, "email": $("#changeemail-email").val()};
+	$.ajax({
+		url: "/api",
+		type: "GET",
+		data: $.param(json),
+		contentType: "application/json"
+	}).fail(function() {
+		alert("Error connecting to wallet server");
+	}).done(function(data) {
+		$("#changeemail-email").removeClass("has-error");
+		$("#changeemail-email-group").removeClass("has-error");
+		$(".changeemail-alert").remove();
+		var jsonResponse = jQuery.parseJSON(data);
+		if (jsonResponse.error) {
+			if (jsonResponse.error_info == "BAD_LOGIN") {
+				logout();
+			} else if (jsonResponse.error_info == "EMPTY_REQUIRED_FIELDS") {
+				$("#changeemail-email-group").addClass("has-error");
+				$("#changeemail-form").prepend("<div class='alert alert-danger changeemail-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Required fields left empty</div>")
+			} else if (jsonResponse.error_info == "INVALID_EMAIL") {
+				$("#changeemail-email-group").addClass("has-error");
+				$("#changeemail-form").prepend("<div class='alert alert-danger changeemail-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>Invalid email</div>")
+			}
+		} else {
+			$("#changeemail-email").val("");
+			$("#changeemail-form").prepend("<div class='alert alert-success changeemail-alert'><button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>We have sent a confirmation email to the address you provided</div>")
 		}
 	});
 }

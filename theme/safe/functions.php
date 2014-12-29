@@ -19,7 +19,7 @@ $omc_btc_price = get_option($database, "omc_btc_price");
 $btc_usd_price = get_option($database, "btc_usd_price");
 $omc_usd_price = $omc_btc_price * $btc_usd_price;
 
-function domail($email, $subject, $message) {
+function domail($email, $subject, $message, $theme = true) {
 	global $mandrill_username, $mandrill_password;
 	$mail = new PHPMailer;
 	$mail->IsSMTP();
@@ -40,9 +40,45 @@ function domail($email, $subject, $message) {
 	$mail->AddAddress($email);
 	$mail->Subject = $subject;
 
-	$mail->Body = $message;
+	if ($theme) {
+		$mail->Body = '<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>Omnicha.in</title>
+	</head>
+	<body style="background-color: #EEEEEE; font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif; color: #555555;">
+		<div style="width: 550px; margin: 50px auto 0 auto; background-color: white;">
+			<div style="padding: 10px 25px; background-color: #222222; height: 46px;">
+				<img src="https://omnicha.in/theme/images/logo.png" />
+			</div>
+			<div style="padding: 25px;">
+				' . $message . '
+			</div>
+		</div>
+	</body>
+</html>';
+	} else {
+		$mail->Body = $message;
+	}
 	
 	return $mail->Send();
+}
+
+function process2fa($database, $type, $secret) {
+	$secret = preg_replace("/[^A-Za-z0-9]/", "", $secret);
+	$to_return = "INVALID";
+	$request = mysqli_query($database, "SELECT id, uid, action, data FROM 2fa WHERE secret = '" . $secret . "' AND type = '" . $type . "' AND expire >= '" . date("y-m-d H:i:s", time() - 86400) . "' AND used = 0");
+
+	if ($request->num_rows == 1) {
+		$request = mysqli_fetch_array($request);
+		if ($request['action'] == "updateemail") {
+			mysqli_query($database, "UPDATE users SET email = '" . $request['data'] . "' WHERE id = '" . $request['uid'] . "'");
+			$to_return = "EMAIL_UPDATED";
+		}
+		mysqli_query($database, "UPDATE 2fa SET used = 1 WHERE id = '" . $request['id'] . "'");
+	}
+	return $to_return;
 }
 
 function format_num($val, $precision = 10) {
