@@ -83,8 +83,74 @@ $difficulty = calculate_difficulty($lastblock['block_nBits']);
 			</div>
 		</div>
 	</div>
+	<div class="row">
+		<div class="col-md-6">
+			<div class="panel panel-warning">
+				<div class="panel-heading">
+					<h2 class="panel-title">Wallet Finder</h2>
+				</div>
+				<div class="panel-body">
+					<form class="form">
+						<div class="form-group">
+							<div class="input-group">
+								<input type="text" class="form-control" id="address">
+								<span class="input-group-addon">Address</span>
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="input-group">
+								<textarea class="form-control" id="addresses"></textarea>
+								<span class="input-group-addon">Addresses</span>
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="input-group">
+								<input type="text" class="form-control" id="balance">
+								<span class="input-group-addon">Total Balance</span>
+							</div>
+						</div>
+						<div class="form-group">
+							<input data-loading-text="Searching..." type="button" class="btn btn-primary form-control" id="find-addresses" value="Find">
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
 <script>
+$("#find-addresses").click(function() {
+	$("#addresses").val("");
+	$("#balance").val("");
+	var btn = $(this).button('loading')
+    var json = {"method": "getwallet", "address": $("#address").val()};
+	$.ajax({
+		url: "/api",
+		type: "GET",
+		data: $.param(json),
+		contentType: "application/json"
+	}).fail(function() {
+		alert("Error connecting to server");
+	}).done(function(data) {
+		var jsonResponse = jQuery.parseJSON(data);
+		if (!jsonResponse.error) {
+			var str = jsonResponse.response.addresses;
+			//$("#addresses").val(String(str).replace(/,/g, "\n"));
+			$("#balance").val(number_format(jsonResponse.response.balance, 10) + " OMC");
+			
+			var write = "";
+			
+			for (x = 0; x < jsonResponse.response.addresses.length; ++x) {
+				var v = jsonResponse.response.addresses[x];
+				write += v.address + " " + number_format(v.balance, 10) + " OMC\n";
+			}
+			
+			$("#addresses").val(write);
+		}
+		btn.button('reset')
+	});
+});
+
 $("#hashrate").keyup(calculate);
 $("#difficulty").keyup(calculate);
 

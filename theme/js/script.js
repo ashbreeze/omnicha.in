@@ -42,7 +42,7 @@ function format_num(val, precision) {
 }
 
 function format_time(seconds, seconds2, precise) {
-	seconds2 = (typeof seconds2 === 'undefined') ? new Date().getTime() : seconds2;
+	seconds2 = (typeof seconds2 === 'undefined') ? new Date().getTime() / 1000 : seconds2;
 	precise = (typeof precise === 'undefined') ? false : precise;
 	var time = (seconds2 - seconds);
 	var time2 = 0;

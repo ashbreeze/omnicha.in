@@ -57,6 +57,7 @@ get_header($pages, $currentpage, "Wallet", "Wallet", false);
 		}
 	}
 	?>
+	<div class='alert alert-danger register-alert'>Wallet is disabled while I look into some issues.</div>
 	<form class="well form" id="login-form" style="margin:0 auto; max-width:358px;" onKeyPress="if (event.keyCode == 13) { login(); }">
 		<h2>Login</h2>
 		<div class="form-group" id="login-username-group">

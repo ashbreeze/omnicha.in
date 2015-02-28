@@ -13,7 +13,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
 $good = false;
 
-$lastblock = get_total_blocks($abedatabase);
+$lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_height FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"))['block_height'];
 
 if (isset($_GET['l']) && is_string($_GET['l'])) {
 	$size = preg_replace('/[^0-9]/', '', $_GET['l']);
@@ -133,7 +133,7 @@ if ($title) {
 	if ($is_address) {
 		if ($address_valid) {
 			$good = true;
-			$address_txs = mysqli_query($abedatabase, "SELECT a.tx_id, a.txin_id, b.block_nTime, b.block_height, b.block_hash, 'in' AS 'type', a.tx_hash, a.tx_pos, -a.txin_value AS 'value' FROM txin_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($address) . "' AND cc.in_longest = 1 UNION SELECT a.tx_id, a.txout_id, b.block_nTime, b.block_height, b.block_hash, 'out' AS 'type', a.tx_hash, a.tx_pos, a.txout_value AS 'value' FROM txout_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($address) . "' AND cc.in_longest = 1 ORDER BY tx_id");
+			$address_txs = mysqli_query($abedatabase, "SELECT a.tx_id, a.txin_id, b.block_nTime, b.block_height, b.block_hash, 'in' AS 'type', a.tx_hash, a.tx_pos, -a.txin_value AS 'value' FROM txin_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($address) . "' AND cc.in_longest = 1 UNION SELECT a.tx_id, a.txout_id, b.block_nTime, b.block_height, b.block_hash, 'out' AS 'type', a.tx_hash, a.tx_pos, a.txout_value AS 'value' FROM txout_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($address) . "' AND cc.in_longest = 1 ORDER BY block_height");
 			$balance = 0;
 			$total_in = 0;
 			$total_out = 0;
@@ -176,76 +176,83 @@ if ($title) {
 			}
 			?>
 			<h2 class="hidden-xs">Address <small><?php echo $address; ?></small></h2>
-			<table class="table table-striped">
-				<?php
-				$vanity = mysqli_query($database, "SELECT label, pool_url, hf_uid, hf_uid_confirmed FROM claimed_addresses WHERE address = '" . $address . "'");
-				$richlist = mysqli_query($database, "SELECT a.rank FROM richlist WHERE a.address = '" . $address . "'");
-				if ($vanity->num_rows == 1) {
-					$vanity = mysqli_fetch_array($vanity);
-					if ($vanity['label'] != null) {
-						?>
-						<tr>
-							<td>Vanity Label</td>
-							<td><?php echo $vanity['label']; ?></td>
-						</tr>
+			<div class="row">
+				<div class="col-md-9">
+					<table class="table table-striped">
 						<?php
-						if ($vanity['pool_url'] != "") {
-						?>
-						<tr>
-							<td>Pool URL</td>
-							<td><a href="<?php echo $vanity['pool_url']; ?>"><?php echo $vanity['pool_url']; ?></a></td>
-						</tr>
-						<?php
+						$vanity = mysqli_query($database, "SELECT label, pool_url, hf_uid, hf_uid_confirmed FROM claimed_addresses WHERE address = '" . $address . "'");
+						$richlist = mysqli_query($database, "SELECT a.rank FROM richlist WHERE a.address = '" . $address . "'");
+						if ($vanity->num_rows == 1) {
+							$vanity = mysqli_fetch_array($vanity);
+							if ($vanity['label'] != null) {
+								?>
+								<tr>
+									<td>Vanity Label</td>
+									<td><?php echo $vanity['label']; ?></td>
+								</tr>
+								<?php
+								if ($vanity['pool_url'] != "") {
+								?>
+								<tr>
+									<td>Pool URL</td>
+									<td><a href="<?php echo $vanity['pool_url']; ?>"><?php echo $vanity['pool_url']; ?></a></td>
+								</tr>
+								<?php
+								}
+								if ($vanity['hf_uid_confirmed']) {
+								?>
+								<tr>
+									<td>HackForums UID</td>
+									<td><a href="http://www.hackforums.net/member.php?action=profile&uid=<?php echo $vanity['hf_uid']; ?>"><?php echo $vanity['hf_uid']; ?></a></td>
+								</tr>
+								<?php
+								}
+							}
 						}
-						if ($vanity['hf_uid_confirmed']) {
+						if ($richlist['rank'] != null) {
+							$richlist = mysqli_fetch_array($vanity);
+							?>
+							<tr>
+								<td>Rank</td>
+								<td><?php echo $richlist['rank']; ?></td>
+							</tr>
+							<?php
+						}					
 						?>
 						<tr>
-							<td>HackForums UID</td>
-							<td><a href="http://www.hackforums.net/member.php?action=profile&uid=<?php echo $vanity['hf_uid']; ?>"><?php echo $vanity['hf_uid']; ?></a></td>
+							<td>Address</td>
+							<td><span class="hidden-xs"><?php echo $address; ?></span><span class="visible-xs"><?php echo substr($address, 0, 18); ?>...</span></td>
 						</tr>
-						<?php
-						}
-					}
-				}
-				if ($richlist['rank'] != null) {
-					$richlist = mysqli_fetch_array($vanity);
-					?>
-					<tr>
-						<td>Rank</td>
-						<td><?php echo $richlist['rank']; ?></td>
-					</tr>
-					<?php
-				}					
-				?>
-				<tr>
-					<td>Address</td>
-					<td><span class="hidden-xs"><?php echo $address; ?></span><span class="visible-xs"><?php echo substr($address, 0, 18); ?>...</span></td>
-				</tr>
-				<tr>
-					<td>Public Key Hash</td>
-					<td><span class="hidden-xs"><?php echo address_to_hash($address); ?></span><span class="visible-xs"><?php echo substr(address_to_hash($address), 0, 18); ?>....</span></td>
-				</tr>
-				<tr>
-					<td>Transactions In</td>
-					<td><?php echo format_num($tx_in); ?></td>
-				</tr>
-				<tr>
-					<td>Transactions Out</td>
-					<td><?php echo format_num($tx_out); ?></td>
-				</tr>
-				<tr>
-					<td>Total In</td>
-					<td><?php echo format_num(format_satoshi($total_in)); ?> OMC</td>
-				</tr>
-				<tr>
-					<td>Total Out</td>
-					<td><?php echo format_num(format_satoshi($total_out)); ?> OMC</td>
-				</tr>
-				<tr>
-					<td>Balance</td>
-					<td><?php echo format_num(format_satoshi($total_in - $total_out)); ?> OMC</td>
-				</tr>
-			</table>
+						<tr>
+							<td>Public Key Hash</td>
+							<td><span class="hidden-xs"><?php echo address_to_hash($address); ?></span><span class="visible-xs"><?php echo substr(address_to_hash($address), 0, 18); ?>....</span></td>
+						</tr>
+						<tr>
+							<td>Transactions In</td>
+							<td><?php echo format_num($tx_in); ?></td>
+						</tr>
+						<tr>
+							<td>Transactions Out</td>
+							<td><?php echo format_num($tx_out); ?></td>
+						</tr>
+						<tr>
+							<td>Total In</td>
+							<td><?php echo format_num(format_satoshi($total_in)); ?> OMC</td>
+						</tr>
+						<tr>
+							<td>Total Out</td>
+							<td><?php echo format_num(format_satoshi($total_out)); ?> OMC</td>
+						</tr>
+						<tr>
+							<td>Balance</td>
+							<td><?php echo format_num(format_satoshi($total_in - $total_out)); ?> OMC</td>
+						</tr>
+					</table>
+				</div>
+				<div class="col-md-3 hidden-xs">
+					<img src="/api?method=getaddressqr&address=<?php echo $address; ?>" />
+				</div>
+			</div>
 			<h3>Transactions</h3>
 			<table id="transaction-list" class="table table-striped">
 				<tr>
@@ -600,7 +607,7 @@ if ($title) {
 				<th class="hidden-xs">Total Sent</th>
 			</tr>
 			<?php
-			$blocks_query = mysqli_query($abedatabase, "SELECT b.block_id, b.block_hash, b.block_height, b.block_nTime, b.block_nBits, b.block_num_tx, b.block_value_out FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE b.block_height >= " . $start . " AND b.block_height <= " . ($start + $size) . " ORDER BY cc.block_height DESC LIMIT 0, " . $size);
+			$blocks_query = mysqli_query($abedatabase, "SELECT b.block_id, b.block_hash, b.block_height, b.block_nTime, b.block_nBits, b.block_num_tx, b.block_value_out FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE b.block_height >= " . $start . " AND b.block_height <= " . ($start + $size) . " AND cc.in_longest = 1 ORDER BY cc.block_height DESC LIMIT 0, " . $size);
 			$blocks = array();
 			while ($block = mysqli_fetch_array($blocks_query)) {
 				$blocks[] = $block;

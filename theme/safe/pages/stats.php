@@ -61,6 +61,11 @@ get_header($pages, $currentpage, "Stats");
 			<td></td>
 		</tr>
 		<tr>
+			<td>Lifetime Average Block Time</td>
+			<td id="lifetime_block_time"></td>
+			<td></td>
+		</tr>
+		<tr>
 			<th>Omnicoin Market Info</th>
 			<th></th>
 			<th></th>
@@ -125,6 +130,7 @@ get_header($pages, $currentpage, "Stats");
 				$("#last_block_time").html(format_time(0, jsonResponse.response.seconds_since_block, true));
 				$("#avg_block_time_1").html(jsonResponse.response.avg_block_time_1 == 0 ? "No blocks found" : format_time(0, jsonResponse.response.avg_block_time_1, true));
 				$("#avg_block_time_24").html(jsonResponse.response.avg_block_time_24 == 0 ? "No blocks found" : format_time(0, jsonResponse.response.avg_block_time_24, true));
+				$("#lifetime_block_time").html(jsonResponse.response.lifetime_block_time == 0 ? "No blocks found" : format_time(0, jsonResponse.response.lifetime_block_time, true));
 				$("#omc_btc_price").html(jsonResponse.response.omc_btc_price + " BTC");
 				$("#omc_usd_price").html("$" + jsonResponse.response.omc_usd_price);
 				$("#market_cap").html("$" + format_num(jsonResponse.response.market_cap));

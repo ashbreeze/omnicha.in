@@ -46,6 +46,7 @@ if (isset($_GET['zoom'])) {
 		<div style="margin-bottom:50px;" id="lifetime-coins-mined"></div>
 		<div style="margin-bottom:50px;" id="lifetime-transactions"></div>
 		<div style="margin-bottom:50px;" id="lifetime-transactions-volume"></div>
+		<div style="margin-bottom:50px;" id="version"></div>
 	</div>
 </div>
 <script>
@@ -736,6 +737,75 @@ if (isset($_GET['zoom'])) {
 				}],
 				tooltip: {
 					valueSuffix: " OMC"
+				},
+				credits: {
+					enabled: false
+				},
+				plotOptions: {
+					series: {
+						marker: {
+							enabled: false
+						}
+					}
+				},
+				rangeSelector: {
+					allButtonsEnabled: true,
+					buttons: [{
+						type: 'week',
+						count: 1,
+						text: '1w'
+					},{
+						type: 'month',
+						count: 1,
+						text: '1m'
+					},{
+						type: 'month',
+						count: 3,
+						text: '3m'
+					},{
+						type: 'month',
+						count: 6,
+						text: '6m'
+					},{
+						type: 'year',
+						count: 1,
+						text: '1y'
+					},{
+						type: 'all',
+						text: 'All'
+					}],
+					selected: 5
+				}
+			});
+			$('#version').highcharts('StockChart', {
+				title: {
+					text: 'Client Versions',
+					x: -20
+				},
+				xAxis: {
+					type: 'datetime'
+				},
+				yAxis: {
+					title: {
+						text: ''
+					},
+					floor: 0
+				},
+				series: [{
+					name: 'v0.8.6.2',
+					data: jsonResponse.response.v0862,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
+					color: '#dd4814'
+				},{
+					name: 'v0.9.0.0',
+					data: jsonResponse.response.v0900,
+					pointStart: Date.UTC(2014, 3, 5, 12),
+					pointInterval: 1000 * jsonResponse.response.zoom,
+					color: '#48dd14'
+				}],
+				tooltip: {
+					valueSuffix: "%"
 				},
 				credits: {
 					enabled: false

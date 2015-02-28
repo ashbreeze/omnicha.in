@@ -104,8 +104,66 @@ if ($_SERVER['argv']['1'] == "--cron") {
 		$total_tx_num += $tx_num;
 		$total_tx_volume += $tx_volume;
 		
-		mysqli_query($database, "INSERT INTO charts (date, difficulty, exchange_price, exchange_volume, tx_num, tx_volume, block_time, hashrate, coins_mined, total_coins_mined, total_tx_num, total_tx_volume) VALUES ('" . date("Y-m-d H:i:s", $time) . "', '" . $difficulty . "', '" . $exchange_price . "', '" . $exchange_volume . "', '" . $tx_num . "', '" . $tx_volume . "', '" . $block_time . "', '" . $hashrate . "', '" . $coins_mined . "', '" . $total_coins_mined . "', '" . $total_tx_num . "', '" . $total_tx_volume . "')");
+		$v0862_percent = 0;
+		$v0900_percent = 0;
+		
+		$peerinfo = $wallet->getpeerinfo();
+		
+		if ($peerinfo) {
+			$total = count($peerinfo);
+			
+			foreach ($peerinfo as $peer) {
+				switch ($peer['subver']) {
+					case "/Satoshi:0.8.6.2/":
+						$v0862_percent++;
+						break;
+					case "/Satoshi:0.9.0/":
+						$v0900_percent++;
+						break;
+				}
+			}
+			if ($total != 0) {
+				$v0862_percent = ($v0862_percent / $total) * 100;
+				$v0900_percent = ($v0900_percent / $total) * 100;
+			}
+		}
+		
+		//mysqli_query($database, "INSERT INTO charts (date, difficulty, exchange_price, exchange_volume, tx_num, tx_volume, block_time, hashrate, coins_mined, total_coins_mined, total_tx_num, total_tx_volume) VALUES ('" . date("Y-m-d H:i:s", $time) . "', '" . $difficulty . "', '" . $exchange_price . "', '" . $exchange_volume . "', '" . $tx_num . "', '" . $tx_volume . "', '" . $block_time . "', '" . $hashrate . "', '" . $coins_mined . "', '" . $total_coins_mined . "', '" . $total_tx_num . "', '" . $total_tx_volume . "')");
+				mysqli_query($database, "INSERT INTO charts (date, difficulty, exchange_price, exchange_volume, tx_num, tx_volume, block_time, hashrate, coins_mined, total_coins_mined, total_tx_num, total_tx_volume, v0862, v0900) VALUES ('" . date("Y-m-d H:i:s", $time) . "', '" . $difficulty . "', '" . $exchange_price . "', '" . $exchange_volume . "', '" . $tx_num . "', '" . $tx_volume . "', '" . $block_time . "', '" . $hashrate . "', '" . $coins_mined . "', '" . $total_coins_mined . "', '" . $total_tx_num . "', '" . $total_tx_volume . "', '" . $v0862_percent . "', '" . $v0900_percent . "')");
+
 	}
+	
+	
+	/*
+	
+	$v0862_percent = 0;
+		$v0900_percent = 0;
+		
+		$peerinfo = $wallet->getpeerinfo()
+		
+		if ($peerinfo) {
+			$total = count($peerinfo);
+			
+			foreach ($peerinfo as $peer) {
+				switch ($peer['subver']) {
+					case "/Satoshi:0.8.6.2/":
+						$v0862_percent++;
+						break;
+					case "/Satoshi:0.9.0.0/":
+						$v0900_percent++;
+						break;
+				}
+			}
+			if ($total != 0) {
+				$v0862_percent = ($v0862_percent / $total) * 100;
+				$v0900_percent = ($v0900_percent / $total) * 100;
+			}
+		}
+		
+		mysqli_query($database, "INSERT INTO charts (date, difficulty, exchange_price, exchange_volume, tx_num, tx_volume, block_time, hashrate, coins_mined, total_coins_mined, total_tx_num, total_tx_volume, v0862, v0900) VALUES ('" . date("Y-m-d H:i:s", $time) . "', '" . $difficulty . "', '" . $exchange_price . "', '" . $exchange_volume . "', '" . $tx_num . "', '" . $tx_volume . "', '" . $block_time . "', '" . $hashrate . "', '" . $coins_mined . "', '" . $total_coins_mined . "', '" . $total_tx_num . "', '" . $total_tx_volume . "', '" . $v0862_percent . "', '" . $v0900_percent . "')");
+
+		
+		*/
 /*
 	$num_blocks = $blocks->num_rows;
 	

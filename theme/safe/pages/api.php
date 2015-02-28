@@ -14,6 +14,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>. */
 require_once('/var/www/omnicha.in/theme/safe/recaptchalib.php');
 
 if (isset($_GET['method']) && is_string($_GET['method'])) {
+	if (strpos($_GET['method'], "wallet") !== false && $_GET['method'] != "getwallet") {
+		echo json_encode(array("version" => API_VERSION, "error" => "Wallet Disabled"));
+		die();
+	}
 	$error = true;
 	$error_message = "UNKNOWN_ERROR";
 	$response = array();
@@ -48,13 +52,15 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				MAX(coins_mined) as 'coins_mined', 
 				MAX(total_coins_mined) as 'total_coins_mined', 
 				MAX(total_tx_num) as 'total_tx_num', 
-				MAX(total_tx_volume) as 'total_tx_volume' 
+				MAX(total_tx_volume) as 'total_tx_volume',
+				AVG(v0862) as 'v0862',
+				AVG(v0900) as 'v0900'
 			FROM 
 				charts 
 			GROUP BY
 				date DIV " . $mysqlTime . "
 			");
-		$response = array("difficulty" => array(), "btc_price" => array(), "usd_price" => array(), "volume" => array(), "transactions" => array(), "transaction_volume" => array(), "block_time" => array(), "hashrate" => array(), "coins_mined" => array(), "lifetime_coins_mined" => array(), "lifetime_transactions" => array(), "lifetime_transactions_volume" => array(), "zoom" => intval($zoom));
+		$response = array("difficulty" => array(), "btc_price" => array(), "usd_price" => array(), "volume" => array(), "transactions" => array(), "transaction_volume" => array(), "block_time" => array(), "hashrate" => array(), "coins_mined" => array(), "lifetime_coins_mined" => array(), "lifetime_transactions" => array(), "lifetime_transactions_volume" => array(), "v0862" => array(), "v0900" => array(), "zoom" => intval($zoom));
 
 		while ($day = mysqli_fetch_array($graph_data_query)) {
 			$response['difficulty'][] = doubleval($day['difficulty']);
@@ -69,6 +75,8 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			$response['lifetime_coins_mined'][] = doubleval($day['total_coins_mined']);
 			$response['lifetime_transactions'][] = intval($day['total_tx_num']);
 			$response['lifetime_transactions_volume'][] = doubleval($day['total_tx_volume']);
+			$response['v0862'][] = doubleval($day['v0862']);
+			$response['v0900'][] = doubleval($day['v0900']);
 		}
 	} else if ($_GET['method'] == "getrichlist") {
 		$error = false;
@@ -126,7 +134,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		$login = check_wallet_login(isset($_GET['username']) ? $_GET['username'] : null, isset($_GET['password']) ? $_GET['password'] : null, $_SERVER['REMOTE_ADDR'], $database, true);
 		
 		if ($login[0] == "GOOD_LOGIN") {
-			$lastblock = get_total_blocks($abedatabase);
+			$lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_height FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"))['block_height'];
 			$response['username'] = $login[1]['username'];
 			$response['email'] = $login[1]['email'];
 			$response['tx_out'] = 0;
@@ -139,7 +147,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			$response['addresses'] = array();
 			$txs = array();
 			foreach ($wallet->getaddressesbyaccount($login[1]['username']) as $address) {
-				$address_txs = mysqli_query($abedatabase, "SELECT a.tx_id, a.txin_id, b.block_nTime, b.block_height, b.block_hash, 'in' AS 'type', a.tx_hash, a.tx_pos, -a.txin_value AS 'value' FROM txin_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($address) . "' AND cc.in_longest = 1 UNION SELECT a.tx_id, a.txout_id, b.block_nTime, b.block_height, b.block_hash, 'out' AS 'type', a.tx_hash, a.tx_pos, a.txout_value AS 'value' FROM txout_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($address) . "' AND cc.in_longest = 1 ORDER BY tx_id");
+				$address_txs = mysqli_query($abedatabase, "SELECT a.tx_id, a.txin_id, b.block_nTime, b.block_height, b.block_hash, 'in' AS 'type', a.tx_hash, a.tx_pos, -a.txin_value AS 'value' FROM txin_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($address) . "' AND cc.in_longest = 1 UNION SELECT a.tx_id, a.txout_id, b.block_nTime, b.block_height, b.block_hash, 'out' AS 'type', a.tx_hash, a.tx_pos, a.txout_value AS 'value' FROM txout_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($address) . "' AND cc.in_longest = 1 ORDER BY block_height");
 				while ($tx = mysqli_fetch_array($address_txs)) {
 					if (abs($tx['value']) >= 1000000) {
 						$response['balance'] += $tx['value'];
@@ -315,7 +323,16 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 									break;
 								}
 							}
-							$transaction = $wallet->createrawtransaction($inputs, array($address_safe => doubleval($amount_safe), $addresses[0] => doubleval($input_total - $amount_safe - 0.1)));
+							if (sprintf($amount_safe + 0.1) == sprintf($input_total)) {
+								$transaction = $wallet->createrawtransaction($inputs, array($address_safe => doubleval($amount_safe)));
+							} else {
+								if ($address_safe != $addresses[0]) {
+									$transaction = $wallet->createrawtransaction($inputs, array($address_safe => doubleval($amount_safe), $addresses[0] => doubleval($input_total - $amount_safe - 0.1)));
+								} else {
+									$transaction = $wallet->createrawtransaction($inputs, array($address_safe => doubleval($input_total - 0.1)));
+								}
+							}
+							
 							$signed_transaction = $wallet->signrawtransaction($transaction);
 							if ($signed_transaction != false && $signed_transaction['complete'] == true) {
 								$wallet->sendrawtransaction($signed_transaction['hex']);
@@ -343,10 +360,10 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 				
 				/*
 				$resp = $wallet->importprivkey($privkey_safe, $login[1]['username']);
+				
 				if ($resp) {
 					$error = false;
-				}
-				*/
+				}*/
 			}
 		} else {
 			$error_message = $login[0];
@@ -457,6 +474,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 	} else if ($_GET['method'] == "getinfo") {
 		$error = false;
 		$lastblock = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT b.block_total_satoshis, b.block_nTime, b.block_id, b.block_height, b.block_nBits FROM block AS b JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) AND cc.in_longest = 1 ORDER BY b.block_height DESC LIMIT 0, 1"));
+		$time_lifetime = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT AVG(a.block_nTime-b.block_nTime) AS 'block_time' FROM block AS a, block AS b WHERE a.prev_block_id = b.block_id"));
 		$time_24 = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT AVG(a.block_nTime-b.block_nTime) AS 'block_time' FROM block AS a, block AS b WHERE a.block_nTime >= " . (strtotime(date("y-m-d H:i:s")) - (60 * 60 * 24)) . " AND a.prev_block_id = b.block_id"));
 		$time_1 = mysqli_fetch_array(mysqli_query($abedatabase, "SELECT AVG(a.block_nTime-b.block_nTime) AS 'block_time' FROM block AS a, block AS b WHERE a.block_nTime >= " . (strtotime(date("y-m-d H:i:s")) - (60 * 60)) . " AND a.prev_block_id = b.block_id"));
 		
@@ -466,6 +484,7 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 		$response["netmhps"] = doubleval($wallet->getnetworkhashps(120, intval($lastblock['block_height'])) / 1000000);
 		$response["estimate_netmhps"] = doubleval($wallet->getnetworkhashps(-1, intval($lastblock['block_height'])) / 1000000);
 		$response["seconds_since_block"] = intval(time() - $lastblock['block_nTime']);
+		$response["lifetime_block_time"] = doubleval($time_lifetime['block_time']);
 		$response["avg_block_time_24"] = doubleval($time_24['block_time']);
 		$response["avg_block_time_1"] = doubleval($time_1['block_time']);
 		$response["total_mined_omc"] = doubleval(format_satoshi($lastblock['block_total_satoshis']));
@@ -595,6 +614,46 @@ if (isset($_GET['method']) && is_string($_GET['method'])) {
 			}
 		} else {
 			$error_message = "OMC_NOT_SPECIFIED";
+		}
+	} else if ($_GET['method'] == "getaddressqr") {
+		if (isset($_GET['address']) && is_string($_GET['address'])) {
+			require_once('/var/www/omnicha.in/theme/safe/phpqrcode.php');
+			QRcode::png('omnicoin:' . preg_replace('/[^0-9A-Za-z]/', '', $_GET['address']), false, 4, 6);
+			die();
+		}
+	} else if ($_GET['method'] == "getwallet") {
+		if (isset($_GET['address']) && is_string($_GET['address'])) {
+			$toCheck = array(preg_replace('/[^0-9A-Za-z]/', '', $_GET['address']));
+
+			$addresses = array();
+			
+			$balance = 0;
+
+			while (count($toCheck) > 0) {
+				foreach ($toCheck as $address) {
+					$x = getAds($address);
+					
+					foreach ($x as $v) {
+						if (!in_array($v, $addresses)) {
+							$addresses[] = $v;
+							$toCheck[] = $v;
+						}
+					}
+					
+					unset($toCheck[array_search($address, $toCheck)]);
+				}
+			}
+			
+			$response['balance'] = 0;
+			$response['addresses'] = array();
+			
+			foreach ($addresses as $addr) {
+				$bal = format_satoshi(get_addr_balance($abedatabase, $addr));
+				$response['addresses'][] = array("address" => $addr, "balance" => $bal);
+				$response['balance'] += $bal;
+			}
+			
+			$error = false;
 		}
 	} else {
 		$error_message = "UNKNOWN_API_METHOD";
@@ -2214,5 +2273,43 @@ function getACOrders() {
 		$z = doubleval(str_replace(",", "", explode("</td>", $buyInfo[$w + 2])[0]));
 		$buyOrders[] = array($x, $y, $z);
 	}
+}
+
+function getAds($addr) {
+	global $abedatabase;
+		
+	$ids = array();
+	
+	$x = mysqli_query($abedatabase, "SELECT a.tx_id FROM txin_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($addr) . "' AND cc.in_longest = 1");
+
+	while ($v = mysqli_fetch_array($x)) {
+		if (!in_array($v['tx_id'], $ids)) {
+			$ids[] = $v['tx_id'];
+		}
+	}
+	
+	$addrs = array();
+	
+	foreach ($ids as $x) {
+		$v = mysqli_query($abedatabase, "SELECT a.pubkey_hash FROM txin_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.tx_id = '" . $x . "' AND cc.in_longest = 1");
+		while ($t = mysqli_fetch_array($v)) {
+			$a = hash_to_address($t['pubkey_hash']);
+			if (!in_array($a, $addrs)) {
+				$addrs[] = $a;
+			}
+		}
+	}
+	
+	return $addrs;
+}
+
+function get_addr_balance($database, $hash) {
+	$address_txs = mysqli_query($database, "SELECT a.tx_id, a.txin_id, b.block_nTime, b.block_height, b.block_hash, 'in' AS 'type', a.tx_hash, a.tx_pos, -a.txin_value AS 'value' FROM txin_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($hash) . "' AND cc.in_longest = 1 UNION SELECT a.tx_id, a.txout_id, b.block_nTime, b.block_height, b.block_hash, 'out' AS 'type', a.tx_hash, a.tx_pos, a.txout_value AS 'value' FROM txout_detail AS a JOIN block AS b ON (b.block_id = a.block_id) JOIN chain_candidate AS cc ON (cc.block_id = b.block_id) WHERE a.pubkey_hash = '" . address_to_hash($hash) . "' AND cc.in_longest = 1 ORDER BY tx_id");
+
+	$balance = 0;
+	while ($tx = mysqli_fetch_array($address_txs)) {
+		$balance += $tx['value'];
+	}
+	return $balance;
 }
 ?>

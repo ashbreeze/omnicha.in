@@ -17,7 +17,7 @@ function get_footer() {
 		<div class="footer hidden-xs">
 			<div class="container">
 				<p class="text-muted" style="margin:10px 0;">
-					Website by <a href="http://www.hackforums.net/member.php?action=profile&uid=1256441">Abraham Lincoln</a> - <a href="https://github.com/Omnicoin-Project/omnicha.in">GitHub</a>
+					Website by <a href="http://www.hackforums.net/member.php?action=profile&uid=1256441">Abraham Lincoln</a> - <a href="https://github.com/Omnicoin-Project/omnicha.in">GitHub</a> - <a href="https://twitter.com/omnichain">Twitter</a>
 					<span class="pull-right">Server Time: <?php echo date("Y-m-d H:i:s"); ?> - <a href="#" data-toggle="modal" data-target="#node-modal"><?php echo count($peerinfo = $wallet->getpeerinfo()); ?> Connected Nodes</a></span>
 				</p>
 			</div>
@@ -27,13 +27,14 @@ function get_footer() {
 				<div class="modal-content">
 					<div class="modal-header">
 						<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-						<h4 class="modal-title">Connected Nodes</h4>
+						<h4 class="modal-title">Connected Nodes: <?php echo count($peerinfo); ?></h4>
 					</div>
 					<div class="modal-body">
 						<table class="table table-bordered table-striped">
 							<tr>
 								<th>IP</th>
-								<th>Version</th>
+								<th>Client Version</th>
+								<th>Protocol Version</th>
 								<th>Time Connected</th>
 							</tr>
 							<?php
@@ -41,6 +42,7 @@ function get_footer() {
 								?>
 								<tr>
 									<td><?php echo $node['addr']; ?></td>
+									<td><?php echo str_replace("/", "", str_replace("/Satoshi:", "", $node['subver'])); ?></td>
 									<td><?php echo $node['version']; ?></td>
 									<td><?php echo format_time($node['conntime']); ?></td>
 								</tr>
