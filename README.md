@@ -9,7 +9,7 @@ The entire site will be recoded from the ground up. During this process I also p
 New Features / Things to Change:
 
 1. Wallet password reset
-2. Wallet address labeling
+2. Wallet address labelling
 3. Wallet address deleting
 4. Wallet cold storage option
 5. Better OMC sending control (multiple recipients, custom fees)
