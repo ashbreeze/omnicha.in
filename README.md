@@ -3,4 +3,4 @@ omnicha.in
 
 Official Block Explorer
 
-API Version: 0.7.4
+API Version: 0.8.0
